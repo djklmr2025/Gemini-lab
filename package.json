@@ -1,0 +1,42 @@
+{
+  "name": "gemini-omni-suite",
+  "version": "1.0.0",
+  "description": "Gemini Multimodal Suite",
+  "main": "server.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview",
+    "start": "node server.js"
+  },
+  "keywords": [
+    "gemini",
+    "ai",
+    "react"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@google/genai": "^1.30.0",
+    "@gradio/client": "^2.0.0",
+    "express": "^5.2.1",
+    "lucide-react": "^0.555.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "supermemory": "^3.10.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "autoprefixer": "^10.4.22",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.17",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.6"
+  }
+}

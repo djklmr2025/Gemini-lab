@@ -1,0 +1,8 @@
+{
+  "name": "Gemini Omni-Suite",
+  "description": "A comprehensive suite showcasing Gemini's Multimodal capabilities including Chat, Image Generation, Veo Video Generation, and Real-time Live API.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
