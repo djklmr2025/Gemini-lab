@@ -45,9 +45,17 @@ const GrokModal: React.FC<GrokModalProps> = ({ onClose, onSendToVeo }) => {
             // If onSendToVeo is provided, we don't auto-send, we let the user read it first? 
             // The user request said "con un clic lo mandas directo a Veo".
             // Let's add a button for that in the response area if onSendToVeo is present.
-        } catch (error) {
-            setResponse('Error: Verifica tu conexión o API key.');
-            console.error(error);
+        } catch (error: any) {
+            console.error("Grok API Error:", error);
+            let errorMsg = 'Error: Verifica tu conexión o API key.';
+
+            if (!GROK_API_KEY) {
+                errorMsg = 'Error: Falta la API Key (VITE_GROK_API_KEY). Configúrala en Vercel/Render.';
+            } else if (error.message && error.message.includes('Failed to fetch')) {
+                errorMsg = 'Error de CORS o Red. La API de xAI no permite acceso directo desde el navegador. Necesitas un proxy.';
+            }
+
+            setResponse(errorMsg);
         }
         setLoading(false);
     };
