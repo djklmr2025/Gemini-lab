@@ -64,8 +64,8 @@ Open your browser and navigate to `http://localhost:5173` (or the port shown in 
 ## 📦 Deployment
 
 This project is configured for deployment on:
-- **Render**: Static Site / Web Service
-- **Vercel**: Single Page Application (SPA)
+- **Render**: [Live App](https://gemini-lab-hbpg.onrender.com) (Static Site / Web Service)
+- **Vercel**: [Live App](https://gemini-a50zq65sn-arkaios-projects.vercel.app) (Single Page Application)
 
 ## 📝 License
 
