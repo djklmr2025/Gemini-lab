@@ -2,7 +2,8 @@
 
 ![Reze Character](/public/avatar.jpg)
 
-**Gemini Lab** is an advanced AI chat interface featuring **Reze**, a character with a distinct personality, capable of voice interaction, visual perception, and advanced image editing capabilities powered by Google Gemini and Veo.
+**Gemini Lab** Pruebalo en linea Ahora: "https://gemini-lab-hbpg.onrender.com/"
+is an advanced AI chat interface featuring **Reze**, a character with a distinct personality, capable of voice interaction, visual perception, and advanced image editing capabilities powered by Google Gemini and Veo.
 
 ## ✨ Key Features
 
