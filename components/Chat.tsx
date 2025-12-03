@@ -7,6 +7,7 @@ import { Message } from '../types';
 
 // Configuration
 const SUPERMEMORY_API_KEY = "sm_j5Cq3nFy8f3XdEawnvoQRY_YrddDVWjhRMwYowJOHZTSdxvnCsAkyOooTmZNtecUVkxbdYwtQsGqCdhQJdAzWyH";
+const DEMO_API_KEY = "AIzaSyD331Anzof74C4NbcRDT4UYzRRNQUF47lM";
 
 // REEMPLAZA ESTA URL CON LA DE TU IMAGEN SUBIDA
 const CHARACTER_IMAGE_URL = "/avatar.jpg";
@@ -24,7 +25,7 @@ export const Chat: React.FC = () => {
     {
       id: '1',
       role: 'model',
-      text: 'Hola. Soy Reze. Te escucho y te veo. ¿De qué quieres hablar hoy?',
+      text: '¡Hola! Soy Reze. Estoy lista para charlar, ver tus fotos o crear cosas nuevas. ¿Qué hacemos?',
       timestamp: Date.now()
     }
   ]);
@@ -90,13 +91,20 @@ export const Chat: React.FC = () => {
       window.speechSynthesis.cancel();
 
       const utterance = new SpeechSynthesisUtterance(text);
-      // Try to find a female voice
-      const voices = window.speechSynthesis.getVoices();
-      const femaleVoice = voices.find(v => v.name.includes('Google') || v.name.includes('Female'));
-      if (femaleVoice) utterance.voice = femaleVoice;
 
-      utterance.rate = 1.0;
-      utterance.pitch = 1.1; // Slightly higher pitch for female character
+      // Prioritize Spanish Female Voices
+      const voices = window.speechSynthesis.getVoices();
+      const spanishFemale = voices.find(v => v.lang.startsWith('es') && (v.name.includes('Google') || v.name.includes('Female') || v.name.includes('Samantha')));
+      const anySpanish = voices.find(v => v.lang.startsWith('es'));
+
+      if (spanishFemale) {
+        utterance.voice = spanishFemale;
+      } else if (anySpanish) {
+        utterance.voice = anySpanish;
+      }
+
+      utterance.rate = 1.1; // Slightly faster for jovial tone
+      utterance.pitch = 1.2; // Higher pitch for feminine/jovial tone
 
       utterance.onstart = () => setAvatarState('speaking');
       utterance.onend = () => setAvatarState('idle');
@@ -134,12 +142,8 @@ export const Chat: React.FC = () => {
     const stored = localStorage.getItem('GEMINI_API_KEY');
     if (stored) return stored;
 
-    const input = window.prompt("⚠️ API Key Requerida\n\nPor favor, inserta tu Google Gemini API Key para continuar:");
-    if (input && input.trim()) {
-      localStorage.setItem('GEMINI_API_KEY', input.trim());
-      return input.trim();
-    }
-    return null;
+    // Use Demo Key as default
+    return DEMO_API_KEY;
   };
 
   const processMessage = async (text: string, currAttachment: Attachment | null) => {
@@ -368,8 +372,8 @@ export const Chat: React.FC = () => {
           {messages.map((msg) => (
             <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-[85%] rounded-2xl px-5 py-3.5 shadow-lg backdrop-blur-sm ${msg.role === 'user'
-                  ? 'bg-blue-600/90 text-white rounded-br-sm'
-                  : 'bg-slate-800/90 text-slate-200 rounded-bl-sm border border-slate-700'
+                ? 'bg-blue-600/90 text-white rounded-br-sm'
+                : 'bg-slate-800/90 text-slate-200 rounded-bl-sm border border-slate-700'
                 }`}>
                 {msg.image && (
                   <img src={msg.image} alt="Attachment" className="max-w-full rounded-lg mb-2 border border-slate-600" />
@@ -417,8 +421,8 @@ export const Chat: React.FC = () => {
                 onClick={handleRemoveText}
                 disabled={!attachment || isLoading}
                 className={`p-3 rounded-lg transition-all duration-300 ${attachment
-                    ? 'text-pink-400 hover:bg-pink-500/20 hover:text-pink-300'
-                    : 'text-slate-600 cursor-not-allowed'
+                  ? 'text-pink-400 hover:bg-pink-500/20 hover:text-pink-300'
+                  : 'text-slate-600 cursor-not-allowed'
                   }`}
                 title="Eliminar Texto/Logos (Magic Eraser)"
               >
@@ -430,8 +434,8 @@ export const Chat: React.FC = () => {
                 onClick={handleAnimateImage}
                 disabled={!attachment || isLoading}
                 className={`p-3 rounded-lg transition-all duration-300 ${attachment
-                    ? 'text-purple-400 hover:bg-purple-500/20 hover:text-purple-300'
-                    : 'text-slate-600 cursor-not-allowed'
+                  ? 'text-purple-400 hover:bg-purple-500/20 hover:text-purple-300'
+                  : 'text-slate-600 cursor-not-allowed'
                   }`}
                 title="Animar Imagen (Veo - 8s)"
               >
@@ -443,8 +447,8 @@ export const Chat: React.FC = () => {
                 onClick={handleGenerateZImage}
                 disabled={!inputValue.trim() || isLoading}
                 className={`p-3 rounded-lg transition-all duration-300 ${inputValue.trim()
-                    ? 'text-green-400 hover:bg-green-500/20 hover:text-green-300'
-                    : 'text-slate-600 cursor-not-allowed'
+                  ? 'text-green-400 hover:bg-green-500/20 hover:text-green-300'
+                  : 'text-slate-600 cursor-not-allowed'
                   }`}
                 title="Generar Imagen (Z-Image Turbo)"
               >
@@ -455,8 +459,8 @@ export const Chat: React.FC = () => {
               <button
                 onClick={handleVoiceInput}
                 className={`p-3 rounded-lg transition-all duration-300 ${avatarState === 'listening'
-                    ? 'bg-red-500 text-white animate-pulse'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-700'
+                  ? 'bg-red-500 text-white animate-pulse'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-700'
                   }`}
                 title="Hablar (Hold or Click)"
               >
