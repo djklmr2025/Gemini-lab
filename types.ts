@@ -3,21 +3,8 @@ export enum AppMode {
   Image = 'image',
   Video = 'video',
   Live = 'live'
-}
-
-export interface Message {
-  id: string;
-  role: 'user' | 'model';
-  text: string;
-  image?: string;
-  timestamp: number;
-}
-
-export interface VideoState {
-  isGenerating: boolean;
-  videoUri: string | null;
   error: string | null;
-  progress: string;
+progress: string;
 }
 
 export interface ImageState {

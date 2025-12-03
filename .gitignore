@@ -26,3 +26,5 @@ dist-ssr
 # Secrets
 utils/API KEY ROOT.txt
 .env
+.vercel
+.env*.local
