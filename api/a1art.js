@@ -24,12 +24,12 @@ export default async function handler(req, res) {
     }
 
     try {
-        // Based on search results, trying the generate endpoint
-        // If this fails, we might need to adjust the URL based on specific docs
-        const response = await fetch('https://api.a1.art/v1/generate', {
+        // Trying the documented endpoint with multiple header variations to be safe
+        const response = await fetch('https://a1.art/open-api/v1/a1/images/generate', {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${apiKey}`,
+                'apiKey': apiKey,           // Documented header
+                'Authorization': `Bearer ${apiKey}`, // Fallback
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify(req.body),
@@ -38,12 +38,19 @@ export default async function handler(req, res) {
         const data = await response.json();
 
         if (!response.ok) {
-            return res.status(response.status).json(data);
+            // Forward the upstream error
+            return res.status(response.status).json({
+                error: data.msg || data.message || 'A1.art API Error',
+                details: data
+            });
         }
 
         res.status(200).json(data);
     } catch (error) {
         console.error('A1.art Proxy error:', error);
-        res.status(500).json({ error: 'Failed to fetch from A1.art', details: error.message });
+        res.status(500).json({
+            error: `Proxy connection failed: ${error.message}`,
+            details: error.message
+        });
     }
 }
