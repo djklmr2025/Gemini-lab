@@ -16,9 +16,9 @@ export const ImageGen: React.FC = () => {
     setGeneratedImage(null);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GOOGLE_API_KEY });
       const modelName = useHighQuality ? 'gemini-3-pro-image-preview' : 'gemini-2.5-flash-image';
-      
+
       const response = await ai.models.generateContent({
         model: modelName,
         contents: {
@@ -26,10 +26,10 @@ export const ImageGen: React.FC = () => {
         },
         // Config to ensure we get an image if possible
         config: {
-           imageConfig: {
-             aspectRatio: "1:1",
-             imageSize: useHighQuality ? "1K" : undefined // imageSize only for Pro
-           }
+          imageConfig: {
+            aspectRatio: "1:1",
+            imageSize: useHighQuality ? "1K" : undefined // imageSize only for Pro
+          }
         }
       });
 
@@ -84,26 +84,25 @@ export const ImageGen: React.FC = () => {
                 className="w-full bg-slate-900 text-white placeholder-slate-600 rounded-xl p-4 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none h-32"
               />
             </div>
-            
-            <div className="flex items-center justify-between">
-               <label className="flex items-center space-x-2 cursor-pointer text-slate-300 select-none">
-                 <input 
-                   type="checkbox" 
-                   checked={useHighQuality}
-                   onChange={(e) => setUseHighQuality(e.target.checked)}
-                   className="w-4 h-4 rounded border-slate-600 text-blue-600 focus:ring-blue-500 bg-slate-900"
-                 />
-                 <span>Use High Quality (Gemini 3 Pro)</span>
-               </label>
 
-               <button
+            <div className="flex items-center justify-between">
+              <label className="flex items-center space-x-2 cursor-pointer text-slate-300 select-none">
+                <input
+                  type="checkbox"
+                  checked={useHighQuality}
+                  onChange={(e) => setUseHighQuality(e.target.checked)}
+                  className="w-4 h-4 rounded border-slate-600 text-blue-600 focus:ring-blue-500 bg-slate-900"
+                />
+                <span>Use High Quality (Gemini 3 Pro)</span>
+              </label>
+
+              <button
                 onClick={handleGenerate}
                 disabled={isGenerating || !prompt.trim()}
-                className={`px-6 py-3 rounded-lg font-medium transition-all transform active:scale-95 ${
-                  isGenerating || !prompt.trim()
+                className={`px-6 py-3 rounded-lg font-medium transition-all transform active:scale-95 ${isGenerating || !prompt.trim()
                     ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
                     : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white shadow-lg hover:shadow-blue-500/25'
-                }`}
+                  }`}
               >
                 {isGenerating ? 'Generating...' : 'Generate Image'}
               </button>
@@ -119,22 +118,22 @@ export const ImageGen: React.FC = () => {
 
         {generatedImage && (
           <div className="bg-slate-800 p-4 rounded-2xl border border-slate-700 shadow-xl animate-fade-in">
-             <div className="aspect-square relative rounded-xl overflow-hidden bg-slate-900">
-                <img 
-                  src={generatedImage} 
-                  alt="Generated" 
-                  className="w-full h-full object-contain"
-                />
-             </div>
-             <div className="mt-4 flex justify-end">
-                <a 
-                  href={generatedImage} 
-                  download={`gemini-image-${Date.now()}.png`}
-                  className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm transition-colors"
-                >
-                  Download
-                </a>
-             </div>
+            <div className="aspect-square relative rounded-xl overflow-hidden bg-slate-900">
+              <img
+                src={generatedImage}
+                alt="Generated"
+                className="w-full h-full object-contain"
+              />
+            </div>
+            <div className="mt-4 flex justify-end">
+              <a
+                href={generatedImage}
+                download={`gemini-image-${Date.now()}.png`}
+                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm transition-colors"
+              >
+                Download
+              </a>
+            </div>
           </div>
         )}
       </div>

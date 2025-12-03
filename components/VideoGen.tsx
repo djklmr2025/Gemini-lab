@@ -31,7 +31,7 @@ export const VideoGen: React.FC = () => {
 
   const handleGenerate = async () => {
     if (!prompt.trim() || isGenerating) return;
-    
+
     // Safety check for Veo
     if (!hasApiKey) {
       await handleSelectKey();
@@ -45,26 +45,26 @@ export const VideoGen: React.FC = () => {
 
     try {
       // Create new instance to ensure we use the selected key
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      
+      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GOOGLE_API_KEY });
+
       setStatus('Submitting request to Veo...');
       let operation = await ai.models.generateVideos({
         model: 'veo-3.1-fast-generate-preview',
         prompt: prompt,
         config: {
           numberOfVideos: 1,
-          resolution: '720p', 
+          resolution: '720p',
           aspectRatio: '16:9'
         }
       });
 
       setStatus('Processing... This may take a minute.');
-      
+
       // Polling loop
       while (!operation.done) {
         await new Promise(resolve => setTimeout(resolve, 5000)); // Poll every 5s
         setStatus('Still processing...');
-        operation = await ai.operations.getVideosOperation({operation: operation});
+        operation = await ai.operations.getVideosOperation({ operation: operation });
       }
 
       if (operation.error) {
@@ -113,9 +113,9 @@ export const VideoGen: React.FC = () => {
             Select API Key
           </button>
           <div className="text-sm text-slate-500 mt-4">
-            <a 
-              href="https://ai.google.dev/gemini-api/docs/billing" 
-              target="_blank" 
+            <a
+              href="https://ai.google.dev/gemini-api/docs/billing"
+              target="_blank"
               rel="noopener noreferrer"
               className="underline hover:text-slate-300"
             >
@@ -138,7 +138,7 @@ export const VideoGen: React.FC = () => {
         </div>
 
         <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl">
-           <div className="space-y-4">
+          <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
                 Video Prompt
@@ -150,16 +150,15 @@ export const VideoGen: React.FC = () => {
                 className="w-full bg-slate-900 text-white placeholder-slate-600 rounded-xl p-4 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none h-32"
               />
             </div>
-            
+
             <div className="flex justify-end">
-               <button
+              <button
                 onClick={handleGenerate}
                 disabled={isGenerating || !prompt.trim()}
-                className={`px-6 py-3 rounded-lg font-medium transition-all ${
-                  isGenerating || !prompt.trim()
+                className={`px-6 py-3 rounded-lg font-medium transition-all ${isGenerating || !prompt.trim()
                     ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
                     : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-lg'
-                }`}
+                  }`}
               >
                 {isGenerating ? 'Generating Video...' : 'Generate Video'}
               </button>
@@ -175,7 +174,7 @@ export const VideoGen: React.FC = () => {
         )}
 
         {error && (
-           <div className="p-4 bg-red-500/10 border border-red-500/50 rounded-xl text-red-400">
+          <div className="p-4 bg-red-500/10 border border-red-500/50 rounded-xl text-red-400">
             {error}
           </div>
         )}
@@ -184,22 +183,22 @@ export const VideoGen: React.FC = () => {
           <div className="bg-slate-800 p-4 rounded-2xl border border-slate-700 shadow-xl">
             <h3 className="text-lg font-medium text-white mb-4">Generated Video</h3>
             <div className="aspect-video bg-black rounded-xl overflow-hidden relative">
-              <video 
-                src={videoUri} 
-                controls 
-                autoPlay 
+              <video
+                src={videoUri}
+                controls
+                autoPlay
                 loop
                 className="w-full h-full object-contain"
               />
             </div>
             <div className="mt-4 flex justify-end">
-               <a 
-                 href={videoUri} 
-                 download={`veo-video-${Date.now()}.mp4`}
-                 className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm transition-colors"
-               >
-                 Download MP4
-               </a>
+              <a
+                href={videoUri}
+                download={`veo-video-${Date.now()}.mp4`}
+                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm transition-colors"
+              >
+                Download MP4
+              </a>
             </div>
           </div>
         )}

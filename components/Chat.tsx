@@ -6,8 +6,8 @@ import { Message } from '../types';
 import GrokModal from './GrokModal';
 
 // Configuration
-const SUPERMEMORY_API_KEY = "sm_j5Cq3nFy8f3XdEawnvoQRY_YrddDVWjhRMwYowJOHZTSdxvnCsAkyOooTmZNtecUVkxbdYwtQsGqCdhQJdAzWyH";
-const DEMO_API_KEY = "AIzaSyD331Anzof74C4NbcRDT4UYzRRNQUF47lM";
+const SUPERMEMORY_API_KEY = import.meta.env.VITE_SUPERMEMORY_API_KEY || "";
+const DEMO_API_KEY = import.meta.env.VITE_GOOGLE_API_KEY || "";
 
 // REEMPLAZA ESTA URL CON LA DE TU IMAGEN SUBIDA
 const CHARACTER_IMAGE_URL = "/avatar.jpg";
