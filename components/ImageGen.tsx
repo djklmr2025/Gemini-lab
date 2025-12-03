@@ -24,6 +24,87 @@ export const ImageGen: React.FC = () => {
   const clearImage = () => setSelectedImage(null);
 
   const handleGenerate = async () => {
+    if (!prompt.trim() || isGenerating) return;
+
+    setIsGenerating(true);
+    setError(null);
+    setGeneratedImage(null);
+
+    try {
+      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GOOGLE_API_KEY });
+
+      // Helper to make the request
+      const generateRequest = async (model: string) => {
+        const parts: any[] = [{ text: prompt }];
+
+        if (selectedImage) {
+          const base64Data = selectedImage.split(',')[1];
+          const mimeType = selectedImage.split(';')[0].split(':')[1];
+          parts.push({
+            inlineData: { data: base64Data, mimeType: mimeType }
+          });
+        }
+
+        return await ai.models.generateContent({
+          model: model,
+          contents: { parts: parts },
+          config: {
+            imageConfig: {
+              aspectRatio: "1:1",
+              imageSize: model.includes('pro') ? "1K" : undefined
+            }
+          }
+        });
+      };
+
+      let response;
+      let usedModel = useHighQuality ? 'gemini-3-pro-image-preview' : 'gemini-2.5-flash-image';
+
+      try {
+        response = await generateRequest(usedModel);
+      } catch (firstError: any) {
+        // If Pro model fails, try Flash
+        if (useHighQuality && (firstError.message?.includes('429') || firstError.message?.includes('Quota') || firstError.message?.includes('RESOURCE_EXHAUSTED'))) {
+          console.warn("Pro model quota exceeded, falling back to Flash...");
+          setError("Pro quota exceeded. Falling back to Flash model...");
+          usedModel = 'gemini-2.5-flash-image';
+          response = await generateRequest(usedModel);
+        } else {
+          throw firstError;
+        }
+      }
+
+      let foundImage = false;
+      const responseParts = response.candidates?.[0]?.content?.parts;
+      if (responseParts) {
+        for (const part of responseParts) {
+          if (part.inlineData) {
+            const base64Data = part.inlineData.data;
+            const mimeType = part.inlineData.mimeType || 'image/png';
+            setGeneratedImage(`data:${mimeType};base64,${base64Data}`);
+            foundImage = true;
+            break;
+          }
+        }
+      }
+
+      if (!foundImage) {
+        setError("The model did not generate an image. Try refining your prompt.");
+      } else if (usedModel !== (useHighQuality ? 'gemini-3-pro-image-preview' : 'gemini-2.5-flash-image')) {
+        setError("Generated using Flash model (Pro quota exceeded).");
+      }
+
+    } catch (err: any) {
+      console.error("Image gen error:", err);
+      setError(err.message || "Failed to generate image");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-full bg-slate-900 p-6 overflow-y-auto">
+      <div className="max-w-3xl mx-auto w-full space-y-8">
         <div>
           <h2 className="text-3xl font-bold text-white mb-2">Imagine</h2>
           <p className="text-slate-400">
@@ -115,37 +196,33 @@ export const ImageGen: React.FC = () => {
           </div>
         </div>
 
-    {
-      error && (
-        <div className="p-4 bg-red-500/10 border border-red-500/50 rounded-xl text-red-400">
-          {error}
-        </div>
-      )
-    }
+        {error && (
+          <div className="p-4 bg-red-500/10 border border-red-500/50 rounded-xl text-red-400">
+            {error}
+          </div>
+        )}
 
-    {
-      generatedImage && (
-        <div className="bg-slate-800 p-4 rounded-2xl border border-slate-700 shadow-xl animate-fade-in">
-          <div className="aspect-square relative rounded-xl overflow-hidden bg-slate-900">
-            <img
-              src={generatedImage}
-              alt="Generated"
-              className="w-full h-full object-contain"
-            />
+        {generatedImage && (
+          <div className="bg-slate-800 p-4 rounded-2xl border border-slate-700 shadow-xl animate-fade-in">
+            <div className="aspect-square relative rounded-xl overflow-hidden bg-slate-900">
+              <img
+                src={generatedImage}
+                alt="Generated"
+                className="w-full h-full object-contain"
+              />
+            </div>
+            <div className="mt-4 flex justify-end">
+              <a
+                href={generatedImage}
+                download={`gemini-image-${Date.now()}.png`}
+                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm transition-colors"
+              >
+                Download
+              </a>
+            </div>
           </div>
-          <div className="mt-4 flex justify-end">
-            <a
-              href={generatedImage}
-              download={`gemini-image-${Date.now()}.png`}
-              className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm transition-colors"
-            >
-              Download
-            </a>
-          </div>
-        </div>
-      )
-    }
-      </div >
-    </div >
+        )}
+      </div>
+    </div>
   );
 };
