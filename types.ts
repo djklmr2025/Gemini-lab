@@ -3,8 +3,15 @@ export enum AppMode {
   Image = 'image',
   Video = 'video',
   Live = 'live'
-  error: string | null;
-progress: string;
+}
+
+export interface Message {
+  id: string;
+  role: 'user' | 'model';
+  text: string;
+  timestamp: number;
+  image?: string;
+  video?: string;
 }
 
 export interface ImageState {
