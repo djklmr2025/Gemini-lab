@@ -29,7 +29,7 @@ export const Chat: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [attachment, setAttachment] = useState<Attachment | null>(null);
   const [avatarState, setAvatarState] = useState<AvatarState>('idle');
-  const [provider, setProvider] = useState<AIProvider>('arkaios');
+  const [provider, setProvider] = useState<AIProvider>('puter');
   const [showSettings, setShowSettings] = useState(false);
 
   // Grok Modal State
@@ -521,46 +521,20 @@ export const Chat: React.FC = () => {
                 <h2 className="text-xl font-bold text-white tracking-wide">REZE</h2>
                 <p className="text-xs text-blue-400 font-medium tracking-widest uppercase">Interfaz de Conciencia</p>
               </div>
-              <div className="relative">
-                <button onClick={() => setShowSettings(!showSettings)} className="text-slate-400 hover:text-white transition-colors">
-                  <Settings className="w-5 h-5" />
-                </button>
-                {showSettings && (
-                  <div className="absolute right-0 top-8 bg-slate-800 border border-slate-700 rounded-lg shadow-xl p-2 w-48 z-50">
-                    <div className="text-xs text-slate-500 mb-2 px-2">Proveedor de IA</div>
-                    <button
-                      onClick={() => { setProvider('arkaios'); setShowSettings(false); }}
-                      className={`w-full text-left px-3 py-2 rounded-md text-sm ${provider === 'arkaios' ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}
-                    >
-                      Arkaios (Recomendado)
-                    </button>
-                    <button
-                      onClick={() => { setProvider('puter'); setShowSettings(false); }}
-                      className={`w-full text-left px-3 py-2 rounded-md text-sm ${provider === 'puter' ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}
-                    >
-                      Sistema Base
-                    </button>
-                  </div>
-                )}
-              </div>
-            </header>
-
-            <div className="flex-1 overflow-y-auto p-4 space-y-6">
-              {messages.map((msg) => (
-                <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[85%] rounded-2xl px-5 py-3.5 shadow-lg backdrop-blur-sm ${msg.role === 'user'
-                    ? 'bg-blue-600/90 text-white rounded-br-sm'
-                    : 'bg-slate-800/90 text-slate-200 rounded-bl-sm border border-slate-700'
-                    }`}>
-                    {msg.image && (
-                      <img src={msg.image} alt="Attachment" className="max-w-full rounded-lg mb-2 border border-slate-600" />
-                    )}
-                    {msg.video && (
-                      <video controls src={msg.video} className="max-w-full rounded-lg mb-2 border border-slate-600" />
-                    )}
-                    <div className="whitespace-pre-wrap leading-relaxed">{msg.text}</div>
-                  </div>
+              <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[85%] rounded-2xl px-5 py-3.5 shadow-lg backdrop-blur-sm ${msg.role === 'user'
+                  ? 'bg-blue-600/90 text-white rounded-br-sm'
+                  : 'bg-slate-800/90 text-slate-200 rounded-bl-sm border border-slate-700'
+                  }`}>
+                  {msg.image && (
+                    <img src={msg.image} alt="Attachment" className="max-w-full rounded-lg mb-2 border border-slate-600" />
+                  )}
+                  {msg.video && (
+                    <video controls src={msg.video} className="max-w-full rounded-lg mb-2 border border-slate-600" />
+                  )}
+                  <div className="whitespace-pre-wrap leading-relaxed">{msg.text}</div>
                 </div>
+              </div>
               ))}
               {isLoading && (
                 <div className="flex justify-start">
@@ -574,58 +548,58 @@ export const Chat: React.FC = () => {
                 </div>
               )}
               <div ref={messagesEndRef} />
-            </div>
+          </div>
 
-            {/* Input Area */}
-            <div className="p-4 border-t border-slate-800 bg-slate-900">
-              <div className="max-w-4xl mx-auto relative">
-                {attachment && (
-                  <div className="absolute -top-12 left-0 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 flex items-center gap-2 shadow-lg animate-fade-in">
-                    <span className="text-xs text-blue-400 font-medium">📎 {attachment.name}</span>
-                    <button onClick={handleRemoveAttachment} className="text-slate-500 hover:text-red-400">×</button>
-                  </div>
-                )}
-                <div className="flex items-end gap-2 bg-slate-800 rounded-xl border border-slate-700 p-2 shadow-inner">
-                  <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*,application/pdf" />
-                  <button onClick={() => fileInputRef.current?.click()} className={`p-3 rounded-lg transition-colors ${attachment ? 'text-blue-400' : 'text-slate-400 hover:bg-slate-700'}`} title="Adjuntar imagen">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" />
-                    </svg>
-                  </button>
-                  <button onClick={handleRemoveText} disabled={!attachment || isLoading} className={`p-3 rounded-lg transition-all duration-300 ${attachment ? 'text-pink-400 hover:bg-pink-500/20 hover:text-pink-300' : 'text-slate-600 cursor-not-allowed opacity-50'}`} title="Magic Eraser">
-                    <Eraser className="w-5 h-5" />
-                  </button>
-                  <button onClick={() => setShowImageGen(true)} disabled={isLoading} className={`p-3 rounded-lg transition-all duration-300 text-green-400 hover:bg-green-500/20 hover:text-green-300`} title="Crear Imagen">
-                    <ImageIcon className="w-5 h-5" />
-                  </button>
-                  <button onClick={() => setIsLiveConnected(!isLiveConnected)} className={`p-3 rounded-lg transition-all duration-300 ${isLiveConnected ? 'bg-red-500 text-white animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.5)]' : 'text-slate-400 hover:text-white hover:bg-slate-700'}`} title={isLiveConnected ? "Terminar Llamada" : "Iniciar Llamada en Vivo"}>
-                    <Radio className="w-5 h-5" />
-                  </button>
-                  <button onClick={handleVoiceInput} className={`p-3 rounded-lg transition-all duration-300 ${avatarState === 'listening' && !isLiveConnected ? 'bg-blue-500 text-white animate-pulse' : 'text-slate-400 hover:text-white hover:bg-slate-700'}`} title="Dictar">
-                    <Mic className="w-5 h-5" />
-                  </button>
-                  <textarea value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }} placeholder="Escribe o habla con Reze..." className="w-full bg-transparent text-white placeholder-slate-500 focus:outline-none resize-none py-3 text-sm" rows={1} />
-                  <button onClick={handleSendMessage} disabled={(!inputValue.trim() && !attachment) || isLoading} className="p-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-500 hover:to-purple-500 disabled:opacity-50 transition-all shadow-lg">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
-                      <path d="M3.105 2.289a.75.75 0 00-.826.95l1.414 4.925A2.21 2.21 0 005.986 10a2.21 2.21 0 00-2.293 1.836l-1.414 4.925a.75.75 0 00.826.95 28.89 28.89 0 0015.293-7.154.75.75 0 000-1.115A28.897 28.897 0 003.105 2.289z" />
-                    </svg>
-                  </button>
+          {/* Input Area */}
+          <div className="p-4 border-t border-slate-800 bg-slate-900">
+            <div className="max-w-4xl mx-auto relative">
+              {attachment && (
+                <div className="absolute -top-12 left-0 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 flex items-center gap-2 shadow-lg animate-fade-in">
+                  <span className="text-xs text-blue-400 font-medium">📎 {attachment.name}</span>
+                  <button onClick={handleRemoveAttachment} className="text-slate-500 hover:text-red-400">×</button>
                 </div>
+              )}
+              <div className="flex items-end gap-2 bg-slate-800 rounded-xl border border-slate-700 p-2 shadow-inner">
+                <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*,application/pdf" />
+                <button onClick={() => fileInputRef.current?.click()} className={`p-3 rounded-lg transition-colors ${attachment ? 'text-blue-400' : 'text-slate-400 hover:bg-slate-700'}`} title="Adjuntar imagen">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" />
+                  </svg>
+                </button>
+                <button onClick={handleRemoveText} disabled={!attachment || isLoading} className={`p-3 rounded-lg transition-all duration-300 ${attachment ? 'text-pink-400 hover:bg-pink-500/20 hover:text-pink-300' : 'text-slate-600 cursor-not-allowed opacity-50'}`} title="Magic Eraser">
+                  <Eraser className="w-5 h-5" />
+                </button>
+                <button onClick={() => setShowImageGen(true)} disabled={isLoading} className={`p-3 rounded-lg transition-all duration-300 text-green-400 hover:bg-green-500/20 hover:text-green-300`} title="Crear Imagen">
+                  <ImageIcon className="w-5 h-5" />
+                </button>
+                <button onClick={() => setIsLiveConnected(!isLiveConnected)} className={`p-3 rounded-lg transition-all duration-300 ${isLiveConnected ? 'bg-red-500 text-white animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.5)]' : 'text-slate-400 hover:text-white hover:bg-slate-700'}`} title={isLiveConnected ? "Terminar Llamada" : "Iniciar Llamada en Vivo"}>
+                  <Radio className="w-5 h-5" />
+                </button>
+                <button onClick={handleVoiceInput} className={`p-3 rounded-lg transition-all duration-300 ${avatarState === 'listening' && !isLiveConnected ? 'bg-blue-500 text-white animate-pulse' : 'text-slate-400 hover:text-white hover:bg-slate-700'}`} title="Dictar">
+                  <Mic className="w-5 h-5" />
+                </button>
+                <textarea value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }} placeholder="Escribe o habla con Reze..." className="w-full bg-transparent text-white placeholder-slate-500 focus:outline-none resize-none py-3 text-sm" rows={1} />
+                <button onClick={handleSendMessage} disabled={(!inputValue.trim() && !attachment) || isLoading} className="p-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-500 hover:to-purple-500 disabled:opacity-50 transition-all shadow-lg">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+                    <path d="M3.105 2.289a.75.75 0 00-.826.95l1.414 4.925A2.21 2.21 0 005.986 10a2.21 2.21 0 00-2.293 1.836l-1.414 4.925a.75.75 0 00.826.95 28.89 28.89 0 0015.293-7.154.75.75 0 000-1.115A28.897 28.897 0 003.105 2.289z" />
+                  </svg>
+                </button>
               </div>
             </div>
           </div>
-          <div className="fixed bottom-24 right-6 z-50">
-            <button onClick={() => setShowGrok(true)} className="bg-purple-700 hover:bg-purple-900 text-white rounded-full p-4 shadow-2xl transition-all duration-300 hover:scale-110 flex items-center gap-2" title="Grok Raw Mode">
-              <Zap className="w-6 h-6" />
-              <span className="font-bold hidden md:inline">Grok</span>
-            </button>
-          </div>
-          {showGrok && (
-            <GrokModal onClose={() => setShowGrok(false)} />
-          )}
-          {showImageGen && (
-            <ImageGenModal onClose={() => setShowImageGen(false)} onImageGenerated={handleImageGenerated} />
-          )}
         </div>
-        );
+        <div className="fixed bottom-24 right-6 z-50">
+          <button onClick={() => setShowGrok(true)} className="bg-purple-700 hover:bg-purple-900 text-white rounded-full p-4 shadow-2xl transition-all duration-300 hover:scale-110 flex items-center gap-2" title="Grok Raw Mode">
+            <Zap className="w-6 h-6" />
+            <span className="font-bold hidden md:inline">Grok</span>
+          </button>
+        </div>
+        {showGrok && (
+          <GrokModal onClose={() => setShowGrok(false)} />
+        )}
+        {showImageGen && (
+          <ImageGenModal onClose={() => setShowImageGen(false)} onImageGenerated={handleImageGenerated} />
+        )}
+      </div>
+      );
 };
