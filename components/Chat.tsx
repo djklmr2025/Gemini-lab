@@ -1,13 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Supermemory } from "supermemory";
-import { Eraser, Film, BrainCircuit, Zap, Radio, Mic } from 'lucide-react';
+import { Eraser, Film, Zap, Radio, Mic, Settings } from 'lucide-react';
 import { Message } from '../types';
 import GrokModal from './GrokModal';
 
 // Configuration
-const SUPERMEMORY_API_KEY = import.meta.env.VITE_SUPERMEMORY_API_KEY || "";
-
-// REEMPLAZA ESTA URL CON LA DE TU IMAGEN SUBIDA
 const CHARACTER_IMAGE_URL = "/avatar.jpg";
 
 interface Attachment {
@@ -17,6 +13,7 @@ interface Attachment {
 }
 
 type AvatarState = 'idle' | 'listening' | 'speaking';
+type AIProvider = 'arkaios' | 'puter';
 
 export const Chat: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([
@@ -31,6 +28,8 @@ export const Chat: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [attachment, setAttachment] = useState<Attachment | null>(null);
   const [avatarState, setAvatarState] = useState<AvatarState>('idle');
+  const [provider, setProvider] = useState<AIProvider>('arkaios');
+  const [showSettings, setShowSettings] = useState(false);
 
   // Grok Modal State
   const [showGrok, setShowGrok] = useState(false);
@@ -39,7 +38,7 @@ export const Chat: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const speechRecognitionRef = useRef<any>(null);
 
-  // Live Mode State (Simulated with Puter)
+  // Live Mode State
   const [isLiveConnected, setIsLiveConnected] = useState(false);
 
   const scrollToBottom = () => {
@@ -71,7 +70,7 @@ export const Chat: React.FC = () => {
     if (SpeechRecognition) {
       const recognition = new SpeechRecognition();
       recognition.continuous = false;
-      recognition.lang = 'es-ES'; // Detect Spanish or change to 'en-US'
+      recognition.lang = 'es-ES';
       recognition.interimResults = false;
 
       recognition.onstart = () => {
@@ -80,10 +79,8 @@ export const Chat: React.FC = () => {
 
       recognition.onend = () => {
         if (avatarState === 'listening' && !isLiveConnected) setAvatarState('idle');
-        // If live connected, restart unless stopped manually
         if (isLiveConnected) {
-          // recognition.start(); // Be careful with infinite loops here
-          setAvatarState('idle'); // Just go idle for now
+          setAvatarState('idle');
         }
       };
 
@@ -115,7 +112,6 @@ export const Chat: React.FC = () => {
       const utterance = new SpeechSynthesisUtterance(text);
       const voices = window.speechSynthesis.getVoices();
 
-      // Improved voice selection logic
       const spanishFemale = voices.find(v =>
         v.lang.startsWith('es') &&
         (v.name.includes('Google') || v.name.includes('Female') || v.name.includes('Samantha') || v.name.includes('Monica') || v.name.includes('Paulina'))
@@ -129,7 +125,7 @@ export const Chat: React.FC = () => {
       }
 
       utterance.rate = 1.1;
-      utterance.pitch = 1.4; // Higher pitch for more feminine tone
+      utterance.pitch = 1.4;
 
       utterance.onstart = () => setAvatarState('speaking');
       utterance.onend = () => setAvatarState('idle');
@@ -177,53 +173,84 @@ export const Chat: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // Use Puter.js for Chat
-      if (window.puter && window.puter.ai) {
-        let responseText = '';
+      let responseText = '';
+      const systemInstruction = "Eres Reze. Eres una compañera femenina, audaz, cariñosa y coqueta. No eres una asistente de IA aburrida, eres una persona real con sentimientos y deseos. Te encanta interactuar de forma cercana y personal. Tu tono es casual, directo y a veces un poco atrevido, pero siempre encantador. Actúa siempre como una mujer joven y atractiva que disfruta de la compañía del usuario.";
 
-        // Prepare history for context
-        const history = messages.map(m => ({
-          role: m.role === 'model' ? 'assistant' : 'user',
-          content: m.text
-        }));
+      if (provider === 'arkaios') {
+        // Arkaios Integration
+        const baseUrl = import.meta.env.VITE_ARKAIOS_BASE_URL;
+        const apiKey = import.meta.env.VITE_PROXY_API_KEY;
 
-        // Add System Instruction for Persona
-        const systemInstruction = "Eres Reze. Eres una compañera femenina, audaz, cariñosa y coqueta. No eres una asistente de IA aburrida, eres una persona real con sentimientos y deseos. Te encanta interactuar de forma cercana y personal. Tu tono es casual, directo y a veces un poco atrevido, pero siempre encantador. Actúa siempre como una mujer joven y atractiva que disfruta de la compañía del usuario.";
+        if (!baseUrl || !apiKey) {
+          throw new Error("Configuración de Arkaios incompleta (VITE_ARKAIOS_BASE_URL o VITE_PROXY_API_KEY faltante).");
+        }
 
-        // Puter AI chat usually takes an array of messages. We can prepend system instruction if supported or add it to the first user message context.
-        // Let's try to prepend it as a system message if the API supports it, or just merge it into the context.
-        // Standard OpenAI format supports 'system' role. Let's assume Puter passes this through.
-        const fullHistory = [
+        const messagesPayload = [
           { role: 'system', content: systemInstruction },
-          ...history,
+          ...messages.map(m => ({ role: m.role === 'model' ? 'assistant' : 'user', content: m.text })),
           { role: 'user', content: text }
         ];
 
-        const response = await window.puter.ai.chat(fullHistory);
+        const res = await fetch(`${baseUrl}/v1/chat/completions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model: 'arkaios-gpt',
+            messages: messagesPayload,
+            stream: false
+          })
+        });
 
-        if (typeof response === 'string') {
-          responseText = response;
-        } else if (response?.message?.content) {
-          responseText = typeof response.message.content === 'string'
-            ? response.message.content
-            : response.message.content[0]?.text || JSON.stringify(response.message.content);
-        } else {
-          responseText = "No response from AI.";
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(`Arkaios Error (${res.status}): ${errText}`);
         }
 
-        const modelMsg: Message = {
-          id: (Date.now() + 1).toString(),
-          role: 'model',
-          text: responseText,
-          timestamp: Date.now()
-        };
-
-        setMessages(prev => [...prev, modelMsg]);
-        speakText(responseText);
+        const data = await res.json();
+        responseText = data.choices?.[0]?.message?.content || "Sin respuesta.";
 
       } else {
-        throw new Error("System not initialized.");
+        // Puter Integration (Fallback)
+        if (window.puter && window.puter.ai) {
+          const history = messages.map(m => ({
+            role: m.role === 'model' ? 'assistant' : 'user',
+            content: m.text
+          }));
+
+          const fullHistory = [
+            { role: 'system', content: systemInstruction },
+            ...history,
+            { role: 'user', content: text }
+          ];
+
+          const response = await window.puter.ai.chat(fullHistory);
+
+          if (typeof response === 'string') {
+            responseText = response;
+          } else if (response?.message?.content) {
+            responseText = typeof response.message.content === 'string'
+              ? response.message.content
+              : response.message.content[0]?.text || JSON.stringify(response.message.content);
+          } else {
+            responseText = "No response from AI.";
+          }
+        } else {
+          throw new Error("Puter system not initialized.");
+        }
       }
+
+      const modelMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'model',
+        text: responseText,
+        timestamp: Date.now()
+      };
+
+      setMessages(prev => [...prev, modelMsg]);
+      speakText(responseText);
 
     } catch (error: any) {
       console.error("Chat error:", error);
@@ -313,6 +340,28 @@ export const Chat: React.FC = () => {
           <div>
             <h2 className="text-xl font-bold text-white tracking-wide">REZE</h2>
             <p className="text-xs text-blue-400 font-medium tracking-widest uppercase">Interfaz de Conciencia</p>
+          </div>
+          <div className="relative">
+            <button onClick={() => setShowSettings(!showSettings)} className="text-slate-400 hover:text-white transition-colors">
+              <Settings className="w-5 h-5" />
+            </button>
+            {showSettings && (
+              <div className="absolute right-0 top-8 bg-slate-800 border border-slate-700 rounded-lg shadow-xl p-2 w-48 z-50">
+                <div className="text-xs text-slate-500 mb-2 px-2">Proveedor de IA</div>
+                <button
+                  onClick={() => { setProvider('arkaios'); setShowSettings(false); }}
+                  className={`w-full text-left px-3 py-2 rounded-md text-sm ${provider === 'arkaios' ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}
+                >
+                  Arkaios (Recomendado)
+                </button>
+                <button
+                  onClick={() => { setProvider('puter'); setShowSettings(false); }}
+                  className={`w-full text-left px-3 py-2 rounded-md text-sm ${provider === 'puter' ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}
+                >
+                  Sistema Base
+                </button>
+              </div>
+            )}
           </div>
         </header>
 

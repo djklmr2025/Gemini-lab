@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Image, X, Upload, Zap } from 'lucide-react';
+import { Image, X, Upload, Zap, Sparkles, Globe } from 'lucide-react';
 
 export const ImageGen: React.FC = () => {
   const [prompt, setPrompt] = useState('');
@@ -7,7 +7,7 @@ export const ImageGen: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [provider, setProvider] = useState<'puter' | 'a1art'>('puter');
+  const [provider, setProvider] = useState<'puter' | 'a1art' | 'arkaios' | 'bfl'>('arkaios');
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -30,32 +30,82 @@ export const ImageGen: React.FC = () => {
     setGeneratedImage(null);
 
     try {
-      if (provider === 'a1art') {
+      if (provider === 'arkaios') {
+        // Arkaios Flux Generation
+        const baseUrl = import.meta.env.VITE_ARKAIOS_BASE_URL;
+        const apiKey = import.meta.env.VITE_PROXY_API_KEY;
+
+        if (!baseUrl || !apiKey) throw new Error("Configuración de Arkaios incompleta.");
+
+        const res = await fetch(`${baseUrl}/v1/images/generations`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model: 'flux-pro-1.1', // Default to Flux Pro via Arkaios
+            prompt: prompt,
+            n: 1,
+            size: '1024x1024'
+          })
+        });
+
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(`Arkaios Error: ${errText}`);
+        }
+
+        const data = await res.json();
+        const imageUrl = data.data?.[0]?.url;
+        if (imageUrl) {
+          setGeneratedImage(imageUrl);
+        } else {
+          throw new Error("No image returned from Arkaios.");
+        }
+
+      } else if (provider === 'bfl') {
+        // Direct BFL Generation (Requires VITE_BFL_API_KEY)
+        const apiKey = import.meta.env.VITE_BFL_API_KEY;
+        if (!apiKey) throw new Error("VITE_BFL_API_KEY no configurada.");
+
+        // BFL API call (simplified)
+        const res = await fetch('https://api.bfl.ai/v1/flux-pro-1.1', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-key': apiKey
+          },
+          body: JSON.stringify({
+            prompt: prompt,
+            width: 1024,
+            height: 1024
+          })
+        });
+
+        if (!res.ok) throw new Error("BFL API Error");
+        const data = await res.json();
+        // BFL is async, this is a simplification. Real implementation needs polling.
+        // For now, we'll assume the user might not have this key set up perfectly and this is a placeholder for the "direct" option.
+        throw new Error("BFL Direct requires async polling implementation. Use Arkaios provider instead.");
+
+      } else if (provider === 'a1art') {
         // A1.art Generation via Proxy
         const res = await fetch('/api/a1art', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             prompt: prompt,
-            image: selectedImage, // Sending base64 if present
+            image: selectedImage,
             model: 'default'
           })
         });
 
         const data = await res.json();
-
-        if (!res.ok) {
-          throw new Error(data.error || data.message || 'Error generating with A1.art');
-        }
-
+        if (!res.ok) throw new Error(data.error || 'Error generating with A1.art');
         const imageUrl = data.image_url || data.output_url || data.image || data[0];
-
-        if (imageUrl) {
-          setGeneratedImage(imageUrl);
-        } else {
-          console.error("A1.art unexpected response:", data);
-          throw new Error('No image URL in response. Data: ' + JSON.stringify(data));
-        }
+        if (imageUrl) setGeneratedImage(imageUrl);
+        else throw new Error('No image URL in response.');
 
       } else {
         // Puter Generation
@@ -88,24 +138,38 @@ export const ImageGen: React.FC = () => {
           <div>
             <h2 className="text-3xl font-bold text-white mb-2">Creador de Imágenes</h2>
             <p className="text-slate-400">
-              Crea visuales impresionantes a partir de descripciones de texto.
+              Crea visuales impresionantes con el poder de Arkaios y Flux.
             </p>
           </div>
 
           {/* Provider Selector */}
-          <div className="flex bg-slate-800 p-1 rounded-lg border border-slate-700">
+          <div className="flex bg-slate-800 p-1 rounded-lg border border-slate-700 overflow-x-auto">
+            <button
+              onClick={() => setProvider('arkaios')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap ${provider === 'arkaios' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+            >
+              <Sparkles size={14} />
+              Flux (Arkaios)
+            </button>
             <button
               onClick={() => setProvider('puter')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${provider === 'puter' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all whitespace-nowrap ${provider === 'puter' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
             >
-              Modelo Estándar
+              Estándar
             </button>
             <button
               onClick={() => setProvider('a1art')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${provider === 'a1art' ? 'bg-purple-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap ${provider === 'a1art' ? 'bg-purple-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
             >
               <Zap size={14} />
-              Modelo Creativo (Sin Filtros)
+              Sin Filtros
+            </button>
+            <button
+              onClick={() => setProvider('bfl')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap ${provider === 'bfl' ? 'bg-green-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+            >
+              <Globe size={14} />
+              Flux Direct
             </button>
           </div>
         </div>
