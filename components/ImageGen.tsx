@@ -235,6 +235,5 @@ export const ImageGen: React.FC = () => {
         </div>
       )}
     </div>
-    </div >
   );
 };
