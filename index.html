@@ -57,6 +57,21 @@
       z-index: 100;
     }
 
+    /* Ocultar header cuando está en iframe */
+    iframe header,
+    html:not(:root) header {
+      display: none !important;
+    }
+
+    /* Ocultar elementos del sistema en iframes */
+    body.in-iframe header,
+    body.in-iframe nav,
+    body.in-iframe .ai-button,
+    body.in-iframe .toggle-nav,
+    body.in-iframe .auto-save-indicator {
+      display: none !important;
+    }
+
     .header-left {
       display: flex;
       align-items: center;
@@ -1232,6 +1247,11 @@
     // Inicializar
     window.addEventListener('DOMContentLoaded', () => {
       ARKAIOS.init();
+      
+      // Detectar si estamos en un iframe
+      if (window.self !== window.top) {
+        document.body.classList.add('in-iframe');
+      }
     });
 
     // Escape para salir de pantalla completa
