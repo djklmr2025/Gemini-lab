@@ -40,7 +40,7 @@ export const VideoGen: React.FC = () => {
     try {
       const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GOOGLE_API_KEY });
 
-      setStatus('Enviando solicitud a Veo...');
+      setStatus('Enviando solicitud...');
       let operation = await ai.models.generateVideos({
         model: 'veo-3.1-fast-generate-preview',
         prompt: prompt,
@@ -75,7 +75,7 @@ export const VideoGen: React.FC = () => {
     } catch (err: any) {
       console.error("Video gen error:", err);
       if (err.message && err.message.includes('Requested entity was not found')) {
-        setError('Error de API Key. Por favor verifica tu configuración.');
+        setError('Error de configuración. Por favor verifica tu configuración.');
       } else {
         setError(err.message || 'Fallo al generar video');
       }
@@ -93,13 +93,13 @@ export const VideoGen: React.FC = () => {
           </div>
           <h2 className="text-2xl font-bold text-white">Creador de Videos</h2>
           <p className="text-slate-400">
-            Para usar el modelo Veo, debes tener VITE_GOOGLE_API_KEY configurada.
+            Para usar el modelo de video, debes tener la configuración correcta.
           </p>
           <button
             onClick={handleSelectKey}
             className="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors shadow-lg shadow-blue-500/20"
           >
-            Verificar API Key
+            Verificar Configuración
           </button>
         </div>
       </div>
@@ -112,7 +112,7 @@ export const VideoGen: React.FC = () => {
         <div>
           <h2 className="text-3xl font-bold text-white mb-2">Creador de Videos</h2>
           <p className="text-slate-400">
-            Genera videos de alta calidad a partir de texto usando el modelo Veo 3.1.
+            Genera videos de alta calidad a partir de texto.
           </p>
         </div>
 

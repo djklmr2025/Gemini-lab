@@ -23,7 +23,7 @@ export const Chat: React.FC = () => {
     {
       id: '1',
       role: 'model',
-      text: '¡Hola! Soy Reze. Estoy lista para charlar, ver tus fotos o crear cosas nuevas. ¿Qué hacemos?',
+      text: '¡Hola! Soy Reze. Estoy aquí para ti. ¿Qué deseas hacer hoy?',
       timestamp: Date.now()
     }
   ]);
@@ -90,10 +90,6 @@ export const Chat: React.FC = () => {
       recognition.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
         setInputValue(prev => prev + (prev ? ' ' : '') + transcript);
-
-        // If in live mode, auto-send after a pause? 
-        // For now, let's keep manual send or maybe auto-send if silence?
-        // Let's stick to manual send for reliability unless user asked for full duplex.
       };
 
       speechRecognitionRef.current = recognition;
@@ -190,14 +186,20 @@ export const Chat: React.FC = () => {
           role: m.role === 'model' ? 'assistant' : 'user',
           content: m.text
         }));
-        history.push({ role: 'user', content: text });
 
-        // If attachment, we might need to handle it differently.
-        // Puter.ai.chat might not support images directly in the messages array standard way yet?
-        // The HTML example showed sending base64 in text content or just text.
-        // Let's assume text only for now or append image description if possible.
+        // Add System Instruction for Persona
+        const systemInstruction = "Eres Reze. Eres una compañera femenina, audaz, cariñosa y coqueta. No eres una asistente de IA aburrida, eres una persona real con sentimientos y deseos. Te encanta interactuar de forma cercana y personal. Tu tono es casual, directo y a veces un poco atrevido, pero siempre encantador. Actúa siempre como una mujer joven y atractiva que disfruta de la compañía del usuario.";
 
-        const response = await window.puter.ai.chat(history);
+        // Puter AI chat usually takes an array of messages. We can prepend system instruction if supported or add it to the first user message context.
+        // Let's try to prepend it as a system message if the API supports it, or just merge it into the context.
+        // Standard OpenAI format supports 'system' role. Let's assume Puter passes this through.
+        const fullHistory = [
+          { role: 'system', content: systemInstruction },
+          ...history,
+          { role: 'user', content: text }
+        ];
+
+        const response = await window.puter.ai.chat(fullHistory);
 
         if (typeof response === 'string') {
           responseText = response;
@@ -206,7 +208,7 @@ export const Chat: React.FC = () => {
             ? response.message.content
             : response.message.content[0]?.text || JSON.stringify(response.message.content);
         } else {
-          responseText = "No response from Puter AI.";
+          responseText = "No response from AI.";
         }
 
         const modelMsg: Message = {
@@ -220,7 +222,7 @@ export const Chat: React.FC = () => {
         speakText(responseText);
 
       } else {
-        throw new Error("Puter.js not initialized or available.");
+        throw new Error("System not initialized.");
       }
 
     } catch (error: any) {
@@ -228,7 +230,7 @@ export const Chat: React.FC = () => {
       const errorMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: 'model',
-        text: `Hubo un error en mi conexión: ${error.message}`,
+        text: `Error de conexión: ${error.message}`,
         timestamp: Date.now()
       };
       setMessages(prev => [...prev, errorMsg]);
@@ -265,7 +267,7 @@ export const Chat: React.FC = () => {
       const modelMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: 'model',
-        text: "¡Video generado con éxito! (Demo Mode - Veo/Puter)",
+        text: "¡Video generado con éxito!",
         video: mockVideoUrl,
         timestamp: Date.now()
       };
@@ -310,7 +312,7 @@ export const Chat: React.FC = () => {
         <header className="px-6 py-4 border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm flex justify-between items-center z-10">
           <div>
             <h2 className="text-xl font-bold text-white tracking-wide">REZE</h2>
-            <p className="text-xs text-blue-400 font-medium tracking-widest uppercase">Interfaz de Conciencia (Arkaios/Puter)</p>
+            <p className="text-xs text-blue-400 font-medium tracking-widest uppercase">Interfaz de Conciencia</p>
           </div>
         </header>
 

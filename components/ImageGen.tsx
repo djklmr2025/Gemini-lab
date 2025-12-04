@@ -69,7 +69,7 @@ export const ImageGen: React.FC = () => {
             throw new Error("Puter did not return a valid image source.");
           }
         } else {
-          throw new Error("Puter.js not initialized or txt2img not available.");
+          throw new Error("System not initialized or txt2img not available.");
         }
       }
 
@@ -98,14 +98,14 @@ export const ImageGen: React.FC = () => {
               onClick={() => setProvider('puter')}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${provider === 'puter' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
             >
-              Puter (Arkaios)
+              Modelo Estándar
             </button>
             <button
               onClick={() => setProvider('a1art')}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${provider === 'a1art' ? 'bg-purple-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
             >
               <Zap size={14} />
-              A1.art (Uncensored)
+              Modelo Creativo (Sin Filtros)
             </button>
           </div>
         </div>
