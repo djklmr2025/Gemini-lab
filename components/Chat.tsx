@@ -178,11 +178,11 @@ export const Chat: React.FC = () => {
 
       if (provider === 'arkaios') {
         // Arkaios Integration
-        const baseUrl = import.meta.env.VITE_ARKAIOS_BASE_URL;
+        const baseUrl = import.meta.env.VITE_ARKAIOS_BASE_URL || "https://arkaios-service-proxy.onrender.com";
         const apiKey = import.meta.env.VITE_PROXY_API_KEY;
 
-        if (!baseUrl || !apiKey) {
-          throw new Error("Configuración de Arkaios incompleta (VITE_ARKAIOS_BASE_URL o VITE_PROXY_API_KEY faltante).");
+        if (!apiKey) {
+          throw new Error("Configuración de Arkaios incompleta (VITE_PROXY_API_KEY faltante).");
         }
 
         const messagesPayload = [
@@ -206,7 +206,7 @@ export const Chat: React.FC = () => {
 
         if (!res.ok) {
           const errText = await res.text();
-          throw new Error(`Arkaios Error (${res.status}): ${errText}`);
+          throw new Error(`Arkaios Error (${res.status}) at ${baseUrl}: ${errText}`);
         }
 
         const data = await res.json();
