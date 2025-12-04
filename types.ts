@@ -20,11 +20,12 @@ export interface ImageState {
   error: string | null;
 }
 
-// Augment window for AudioContext and Speech Recognition
+// Augment window for AudioContext and Speech Recognition and Puter
 declare global {
   interface Window {
     webkitAudioContext: typeof AudioContext;
     SpeechRecognition: any;
     webkitSpeechRecognition: any;
+    puter: any;
   }
 }

@@ -33,14 +33,14 @@ export const VideoGen: React.FC = () => {
     }
 
     setIsGenerating(true);
-    setStatus('Initializing generation...');
+    setStatus('Iniciando generación...');
     setError(null);
     setVideoUri(null);
 
     try {
       const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GOOGLE_API_KEY });
 
-      setStatus('Submitting request to Veo...');
+      setStatus('Enviando solicitud a Veo...');
       let operation = await ai.models.generateVideos({
         model: 'veo-3.1-fast-generate-preview',
         prompt: prompt,
@@ -51,11 +51,11 @@ export const VideoGen: React.FC = () => {
         }
       });
 
-      setStatus('Processing... This may take a minute.');
+      setStatus('Procesando... Esto puede tomar un minuto.');
 
       while (!operation.done) {
         await new Promise(resolve => setTimeout(resolve, 5000));
-        setStatus('Still processing...');
+        setStatus('Aún procesando...');
         operation = await ai.operations.getVideosOperation({ operation: operation });
       }
 
@@ -67,7 +67,7 @@ export const VideoGen: React.FC = () => {
       if (uri) {
         const authenticatedUri = `${uri}&key=${import.meta.env.VITE_GOOGLE_API_KEY}`;
         setVideoUri(authenticatedUri);
-        setStatus('Complete!');
+        setStatus('¡Completado!');
       } else {
         throw new Error('No video URI returned');
       }
@@ -75,9 +75,9 @@ export const VideoGen: React.FC = () => {
     } catch (err: any) {
       console.error("Video gen error:", err);
       if (err.message && err.message.includes('Requested entity was not found')) {
-        setError('API Key error. Please check your project configuration.');
+        setError('Error de API Key. Por favor verifica tu configuración.');
       } else {
-        setError(err.message || 'Failed to generate video');
+        setError(err.message || 'Fallo al generar video');
       }
     } finally {
       setIsGenerating(false);
@@ -91,15 +91,15 @@ export const VideoGen: React.FC = () => {
           <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
             🎥
           </div>
-          <h2 className="text-2xl font-bold text-white">Veo Video Generation</h2>
+          <h2 className="text-2xl font-bold text-white">Creador de Videos</h2>
           <p className="text-slate-400">
-            To use the Veo model, you must have VITE_GOOGLE_API_KEY configured.
+            Para usar el modelo Veo, debes tener VITE_GOOGLE_API_KEY configurada.
           </p>
           <button
             onClick={handleSelectKey}
             className="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors shadow-lg shadow-blue-500/20"
           >
-            Check API Key
+            Verificar API Key
           </button>
         </div>
       </div>
@@ -110,9 +110,9 @@ export const VideoGen: React.FC = () => {
     <div className="flex flex-col h-full bg-slate-900 p-6 overflow-y-auto">
       <div className="max-w-3xl mx-auto w-full space-y-8">
         <div>
-          <h2 className="text-3xl font-bold text-white mb-2">Veo Video Studio</h2>
+          <h2 className="text-3xl font-bold text-white mb-2">Creador de Videos</h2>
           <p className="text-slate-400">
-            Generate high-quality videos from text prompts using the Veo 3.1 model.
+            Genera videos de alta calidad a partir de texto usando el modelo Veo 3.1.
           </p>
         </div>
 
@@ -120,12 +120,12 @@ export const VideoGen: React.FC = () => {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
-                Video Prompt
+                Prompt de Video
               </label>
               <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder="A cinematic drone shot of a cyberpunk city at night, rain falling, neon reflections..."
+                placeholder="Una toma cinematográfica de una ciudad cyberpunk de noche..."
                 className="w-full bg-slate-900 text-white placeholder-slate-600 rounded-xl p-4 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none h-32"
               />
             </div>
@@ -139,7 +139,7 @@ export const VideoGen: React.FC = () => {
                   : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-lg'
                   }`}
               >
-                {isGenerating ? 'Generating Video...' : 'Generate Video'}
+                {isGenerating ? 'Generando Video...' : 'Generar Video'}
               </button>
             </div>
           </div>
@@ -148,7 +148,7 @@ export const VideoGen: React.FC = () => {
         {isGenerating && (
           <div className="p-8 text-center bg-slate-800/50 rounded-xl border border-slate-700 border-dashed animate-pulse">
             <p className="text-blue-400 font-medium">{status}</p>
-            <p className="text-xs text-slate-500 mt-2">This usually takes 1-2 minutes.</p>
+            <p className="text-xs text-slate-500 mt-2">Esto usualmente toma 1-2 minutos.</p>
           </div>
         )}
 
@@ -160,7 +160,7 @@ export const VideoGen: React.FC = () => {
 
         {videoUri && (
           <div className="bg-slate-800 p-4 rounded-2xl border border-slate-700 shadow-xl">
-            <h3 className="text-lg font-medium text-white mb-4">Generated Video</h3>
+            <h3 className="text-lg font-medium text-white mb-4">Video Generado</h3>
             <div className="aspect-video bg-black rounded-xl overflow-hidden relative">
               <video
                 src={videoUri}
@@ -176,7 +176,7 @@ export const VideoGen: React.FC = () => {
                 download={`veo-video-${Date.now()}.mp4`}
                 className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm transition-colors"
               >
-                Download MP4
+                Descargar MP4
               </a>
             </div>
           </div>

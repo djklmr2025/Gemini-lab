@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { GoogleGenAI } from '@google/genai';
 import { Image, X, Upload, Zap } from 'lucide-react';
 
 export const ImageGen: React.FC = () => {
@@ -7,9 +6,8 @@ export const ImageGen: React.FC = () => {
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [useHighQuality, setUseHighQuality] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [provider, setProvider] = useState<'gemini' | 'a1art'>('gemini');
+  const [provider, setProvider] = useState<'puter' | 'a1art'>('puter');
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -40,7 +38,7 @@ export const ImageGen: React.FC = () => {
           body: JSON.stringify({
             prompt: prompt,
             image: selectedImage, // Sending base64 if present
-            model: 'default' // Placeholder, API might ignore or require specific model
+            model: 'default'
           })
         });
 
@@ -50,9 +48,6 @@ export const ImageGen: React.FC = () => {
           throw new Error(data.error || data.message || 'Error generating with A1.art');
         }
 
-        // Assuming A1.art returns { image_url: "..." } or { image: "base64..." }
-        // We'll need to adjust based on actual response. 
-        // Common pattern: data.output_url or data.image
         const imageUrl = data.image_url || data.output_url || data.image || data[0];
 
         if (imageUrl) {
@@ -63,66 +58,18 @@ export const ImageGen: React.FC = () => {
         }
 
       } else {
-        // Gemini Generation (Existing Logic)
-        const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GOOGLE_API_KEY });
-
-        const generateRequest = async (model: string) => {
-          const parts: any[] = [{ text: prompt }];
-
-          if (selectedImage) {
-            const base64Data = selectedImage.split(',')[1];
-            const mimeType = selectedImage.split(';')[0].split(':')[1];
-            parts.push({
-              inlineData: { data: base64Data, mimeType: mimeType }
-            });
-          }
-
-          return await ai.models.generateContent({
-            model: model,
-            contents: { parts: parts },
-            config: {
-              imageConfig: {
-                aspectRatio: "1:1",
-                imageSize: model.includes('pro') ? "1K" : undefined
-              }
-            }
-          });
-        };
-
-        let response;
-        let usedModel = useHighQuality ? 'gemini-3-pro-image-preview' : 'gemini-2.5-flash-image';
-
-        try {
-          response = await generateRequest(usedModel);
-        } catch (firstError: any) {
-          if (useHighQuality && (firstError.message?.includes('429') || firstError.message?.includes('Quota') || firstError.message?.includes('RESOURCE_EXHAUSTED'))) {
-            console.warn("Pro model quota exceeded, falling back to Flash...");
-            setError("Pro quota exceeded. Falling back to Flash model...");
-            usedModel = 'gemini-2.5-flash-image';
-            response = await generateRequest(usedModel);
+        // Puter Generation
+        if (window.puter && window.puter.ai && window.puter.ai.txt2img) {
+          const imageElement = await window.puter.ai.txt2img(prompt);
+          if (imageElement && imageElement.src) {
+            setGeneratedImage(imageElement.src);
+          } else if (imageElement instanceof HTMLImageElement) {
+            setGeneratedImage(imageElement.src);
           } else {
-            throw firstError;
+            throw new Error("Puter did not return a valid image source.");
           }
-        }
-
-        let foundImage = false;
-        const responseParts = response.candidates?.[0]?.content?.parts;
-        if (responseParts) {
-          for (const part of responseParts) {
-            if (part.inlineData) {
-              const base64Data = part.inlineData.data;
-              const mimeType = part.inlineData.mimeType || 'image/png';
-              setGeneratedImage(`data:${mimeType};base64,${base64Data}`);
-              foundImage = true;
-              break;
-            }
-          }
-        }
-
-        if (!foundImage) {
-          setError("The model did not generate an image. Try refining your prompt.");
-        } else if (usedModel !== (useHighQuality ? 'gemini-3-pro-image-preview' : 'gemini-2.5-flash-image')) {
-          setError("Generated using Flash model (Pro quota exceeded).");
+        } else {
+          throw new Error("Puter.js not initialized or txt2img not available.");
         }
       }
 
@@ -139,19 +86,19 @@ export const ImageGen: React.FC = () => {
       <div className="max-w-3xl mx-auto w-full space-y-8">
         <div className="flex justify-between items-start">
           <div>
-            <h2 className="text-3xl font-bold text-white mb-2">Imagine</h2>
+            <h2 className="text-3xl font-bold text-white mb-2">Creador de Imágenes</h2>
             <p className="text-slate-400">
-              Create stunning visuals from text descriptions.
+              Crea visuales impresionantes a partir de descripciones de texto.
             </p>
           </div>
 
           {/* Provider Selector */}
           <div className="flex bg-slate-800 p-1 rounded-lg border border-slate-700">
             <button
-              onClick={() => setProvider('gemini')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${provider === 'gemini' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+              onClick={() => setProvider('puter')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${provider === 'puter' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
             >
-              Gemini
+              Puter (Arkaios)
             </button>
             <button
               onClick={() => setProvider('a1art')}
@@ -173,7 +120,7 @@ export const ImageGen: React.FC = () => {
                 <textarea
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
-                  placeholder={provider === 'a1art' ? "Describe your uncensored image..." : "A futuristic city with flying cars, neon lights, digital art style..."}
+                  placeholder={provider === 'a1art' ? "Describe tu imagen sin censura..." : "Una ciudad futurista con autos voladores..."}
                   className="w-full bg-slate-900 text-white placeholder-slate-600 rounded-xl p-4 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none h-32"
                 />
 
@@ -208,20 +155,8 @@ export const ImageGen: React.FC = () => {
                     onChange={handleImageSelect}
                   />
                   <Upload size={18} className="group-hover:text-blue-400 transition-colors" />
-                  <span className="text-sm font-medium">Attach Image</span>
+                  <span className="text-sm font-medium">Adjuntar Imagen</span>
                 </label>
-
-                {provider === 'gemini' && (
-                  <label className="flex items-center space-x-2 cursor-pointer text-slate-300 select-none">
-                    <input
-                      type="checkbox"
-                      checked={useHighQuality}
-                      onChange={(e) => setUseHighQuality(e.target.checked)}
-                      className="w-4 h-4 rounded border-slate-600 text-blue-600 focus:ring-blue-500 bg-slate-900"
-                    />
-                    <span className="text-sm">High Quality (Pro)</span>
-                  </label>
-                )}
               </div>
 
               <button
@@ -237,12 +172,12 @@ export const ImageGen: React.FC = () => {
                 {isGenerating ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span>Generating...</span>
+                    <span>Generando...</span>
                   </>
                 ) : (
                   <>
                     <Image size={20} />
-                    <span>Generate Image</span>
+                    <span>Generar Imagen</span>
                   </>
                 )}
               </button>
@@ -271,7 +206,7 @@ export const ImageGen: React.FC = () => {
                 download={`generated-image-${Date.now()}.png`}
                 className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm transition-colors"
               >
-                Download
+                Descargar
               </a>
             </div>
           </div>

@@ -9,9 +9,9 @@ interface NavigationProps {
 export const Navigation: React.FC<NavigationProps> = ({ currentMode, onModeChange }) => {
   const navItems = [
     { id: AppMode.Chat, label: 'Chat', icon: '💬' },
-    { id: AppMode.Image, label: 'Imagine', icon: '🎨' },
-    { id: AppMode.Video, label: 'Video (Veo)', icon: '🎥' },
-    { id: AppMode.Live, label: 'Live', icon: '🎙️' },
+    { id: AppMode.Image, label: 'Creador de Imágenes', icon: '🎨' },
+    { id: AppMode.Video, label: 'Creador de Videos', icon: '🎥' },
+    { id: AppMode.Live, label: 'Arkaios en Línea', icon: '🎙️' },
   ];
 
   return (
@@ -22,17 +22,16 @@ export const Navigation: React.FC<NavigationProps> = ({ currentMode, onModeChang
         </h1>
         <p className="text-xs text-slate-500 mt-1">Multimodal AI Studio</p>
       </div>
-      
+
       <div className="flex-1 space-y-2">
         {navItems.map((item) => (
           <button
             key={item.id}
             onClick={() => onModeChange(item.id)}
-            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ${
-              currentMode === item.id
+            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ${currentMode === item.id
                 ? 'bg-blue-600/20 text-blue-400 border border-blue-600/30'
                 : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
-            }`}
+              }`}
           >
             <span className="text-lg">{item.icon}</span>
             <span className="font-medium">{item.label}</span>
@@ -42,11 +41,11 @@ export const Navigation: React.FC<NavigationProps> = ({ currentMode, onModeChang
 
       <div className="mt-auto px-4 py-4 bg-slate-800/50 rounded-lg border border-slate-700/50">
         <p className="text-xs text-slate-400 leading-relaxed">
-          Powered by Google GenAI SDK.
+          Powered by Puter.js & Arkaios.
           <br />
-          Gemini 2.5 Flash & Pro
+          Gemini 2.5 Flash & Pro (Legacy)
           <br />
-          Veo 3.1 & Live API
+          Veo 3.1 & Live API (Legacy)
         </p>
       </div>
     </nav>

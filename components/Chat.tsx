@@ -1,14 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { GoogleGenAI, LiveServerMessage, Modality } from '@google/genai';
 import { Supermemory } from "supermemory";
 import { Eraser, Film, BrainCircuit, Zap, Radio, Mic } from 'lucide-react';
-import { createPcmBlob, decodeAudioData, base64ToUint8Array } from '../utils/audioUtils';
 import { Message } from '../types';
 import GrokModal from './GrokModal';
 
 // Configuration
 const SUPERMEMORY_API_KEY = import.meta.env.VITE_SUPERMEMORY_API_KEY || "";
-const DEMO_API_KEY = import.meta.env.VITE_GOOGLE_API_KEY || "";
 
 // REEMPLAZA ESTA URL CON LA DE TU IMAGEN SUBIDA
 const CHARACTER_IMAGE_URL = "/avatar.jpg";
@@ -42,18 +39,8 @@ export const Chat: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const speechRecognitionRef = useRef<any>(null);
 
-  // Live Mode Refs
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const mediaStreamRef = useRef<MediaStream | null>(null);
-  const processorRef = useRef<ScriptProcessorNode | null>(null);
-  const sourceNodeRef = useRef<MediaStreamAudioSourceNode | null>(null);
-  const sessionPromiseRef = useRef<Promise<any> | null>(null);
-  const nextStartTimeRef = useRef<number>(0);
-  const sourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
-
-  // Live Mode State
+  // Live Mode State (Simulated with Puter)
   const [isLiveConnected, setIsLiveConnected] = useState(false);
-  const [liveStatus, setLiveStatus] = useState('Ready');
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -92,204 +79,32 @@ export const Chat: React.FC = () => {
       };
 
       recognition.onend = () => {
-        if (avatarState === 'listening') setAvatarState('idle');
+        if (avatarState === 'listening' && !isLiveConnected) setAvatarState('idle');
+        // If live connected, restart unless stopped manually
+        if (isLiveConnected) {
+          // recognition.start(); // Be careful with infinite loops here
+          setAvatarState('idle'); // Just go idle for now
+        }
       };
 
       recognition.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
         setInputValue(prev => prev + (prev ? ' ' : '') + transcript);
+
+        // If in live mode, auto-send after a pause? 
+        // For now, let's keep manual send or maybe auto-send if silence?
+        // Let's stick to manual send for reliability unless user asked for full duplex.
       };
 
       speechRecognitionRef.current = recognition;
     }
-
-    return () => cleanupLive();
-  }, []);
-
-  const cleanupLive = () => {
-    if (mediaStreamRef.current) {
-      mediaStreamRef.current.getTracks().forEach(track => track.stop());
-      mediaStreamRef.current = null;
-    }
-    if (processorRef.current) {
-      processorRef.current.disconnect();
-      processorRef.current = null;
-    }
-    if (sourceNodeRef.current) {
-      sourceNodeRef.current.disconnect();
-      sourceNodeRef.current = null;
-    }
-    if (audioContextRef.current) {
-      audioContextRef.current.close();
-      audioContextRef.current = null;
-    }
-
-    // Stop all playing sources
-    sourcesRef.current.forEach(source => {
-      try { source.stop(); } catch (e) { }
-    });
-    sourcesRef.current.clear();
-
-    if (sessionPromiseRef.current) {
-      sessionPromiseRef.current.then(session => {
-        if (session && typeof session.close === 'function') {
-          session.close();
-        }
-      }).catch(() => { });
-      sessionPromiseRef.current = null;
-    }
-  };
-
-  const getGeminiApiKey = (): string | null => {
-    if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
-      return process.env.API_KEY;
-    }
-    const stored = localStorage.getItem('GEMINI_API_KEY');
-    if (stored) return stored;
-
-    return DEMO_API_KEY;
-  };
-
-  const handleLiveConnect = async () => {
-    if (isLiveConnected) {
-      cleanupLive();
-      setIsLiveConnected(false);
-      setLiveStatus('Disconnected');
-      setAvatarState('idle');
-      return;
-    }
-
-    try {
-      setLiveStatus('Requesting microphone access...');
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaStreamRef.current = stream;
-
-      setLiveStatus('Connecting to Gemini Live...');
-
-      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      const audioCtx = new AudioContextClass({ sampleRate: 24000 });
-      audioContextRef.current = audioCtx;
-
-      const inputAudioCtx = new AudioContextClass({ sampleRate: 16000 });
-      const source = inputAudioCtx.createMediaStreamSource(stream);
-      const scriptProcessor = inputAudioCtx.createScriptProcessor(4096, 1, 1);
-
-      source.connect(scriptProcessor);
-      scriptProcessor.connect(inputAudioCtx.destination);
-
-      sourceNodeRef.current = source;
-      processorRef.current = scriptProcessor;
-
-      const apiKey = getGeminiApiKey();
-      if (!apiKey) throw new Error("No API Key available");
-
-      const ai = new GoogleGenAI({ apiKey });
-
-      const sessionPromise = ai.live.connect({
-        model: 'gemini-2.0-flash-exp',
-        callbacks: {
-          onopen: () => {
-            console.log('Live session opened');
-            setLiveStatus('Connected! Start talking.');
-            setIsLiveConnected(true);
-            setAvatarState('listening');
-
-            // Start streaming audio
-            scriptProcessor.onaudioprocess = (e) => {
-              const inputData = e.inputBuffer.getChannelData(0);
-              const pcmBlob = createPcmBlob(inputData);
-
-              if (sessionPromiseRef.current) {
-                sessionPromiseRef.current.then(session => {
-                  session.sendRealtimeInput({ media: pcmBlob });
-                });
-              }
-            };
-          },
-          onmessage: async (message: LiveServerMessage) => {
-            // Handle Audio Output
-            const base64Audio = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
-            if (base64Audio) {
-              try {
-                const ctx = audioContextRef.current;
-                if (!ctx) return;
-
-                setAvatarState('speaking');
-
-                // Ensure nextStartTime is at least current time
-                nextStartTimeRef.current = Math.max(nextStartTimeRef.current, ctx.currentTime);
-
-                const audioBytes = base64ToUint8Array(base64Audio);
-                const audioBuffer = await decodeAudioData(audioBytes, ctx, 24000, 1);
-
-                const source = ctx.createBufferSource();
-                source.buffer = audioBuffer;
-                source.connect(ctx.destination);
-
-                source.addEventListener('ended', () => {
-                  sourcesRef.current.delete(source);
-                  if (sourcesRef.current.size === 0) {
-                    setAvatarState('listening'); // Back to listening after speaking
-                  }
-                });
-
-                source.start(nextStartTimeRef.current);
-                nextStartTimeRef.current += audioBuffer.duration;
-                sourcesRef.current.add(source);
-              } catch (e) {
-                console.error("Audio decode error", e);
-              }
-            }
-
-            // Handle Interruptions
-            if (message.serverContent?.interrupted) {
-              console.log("Interrupted");
-              sourcesRef.current.forEach(s => {
-                try { s.stop(); } catch (e) { }
-              });
-              sourcesRef.current.clear();
-              nextStartTimeRef.current = 0;
-              setAvatarState('listening');
-            }
-          },
-          onclose: () => {
-            console.log('Session closed');
-            setIsLiveConnected(false);
-            setLiveStatus('Disconnected');
-            setAvatarState('idle');
-          },
-          onerror: (err) => {
-            console.error('Session error', err);
-            setLiveStatus('Connection error occurred.');
-            setIsLiveConnected(false);
-            cleanupLive();
-            setAvatarState('idle');
-          }
-        },
-        config: {
-          responseModalities: [Modality.AUDIO],
-          speechConfig: {
-            voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } }
-          }
-        }
-      });
-
-      sessionPromiseRef.current = sessionPromise;
-
-    } catch (e: any) {
-      console.error(e);
-      setLiveStatus('Error');
-      cleanupLive();
-      alert("Error connecting to Live: " + e.message);
-    }
-  };
+  }, [isLiveConnected]);
 
   const handleVoiceInput = () => {
     if (speechRecognitionRef.current) {
       try {
         speechRecognitionRef.current.start();
       } catch (e) {
-        // Sometimes throwing if already started
         speechRecognitionRef.current.stop();
       }
     } else {
@@ -352,12 +167,6 @@ export const Chat: React.FC = () => {
   const processMessage = async (text: string, currAttachment: Attachment | null) => {
     if (isLoading) return;
 
-    const apiKey = getGeminiApiKey();
-    if (!apiKey) {
-      alert("No se puede enviar el mensaje sin una API Key válida.");
-      return;
-    }
-
     const userMsg: Message = {
       id: Date.now().toString(),
       role: 'user',
@@ -372,59 +181,54 @@ export const Chat: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: apiKey });
-      const memoryClient = new Supermemory({ apiKey: SUPERMEMORY_API_KEY });
+      // Use Puter.js for Chat
+      if (window.puter && window.puter.ai) {
+        let responseText = '';
 
-      // Store Memory
-      if (text.trim()) {
-        try {
-          await memoryClient.memories.add({ content: text });
-        } catch (memErr) {
-          console.error("Failed to store memory:", memErr);
+        // Prepare history for context
+        const history = messages.map(m => ({
+          role: m.role === 'model' ? 'assistant' : 'user',
+          content: m.text
+        }));
+        history.push({ role: 'user', content: text });
+
+        // If attachment, we might need to handle it differently.
+        // Puter.ai.chat might not support images directly in the messages array standard way yet?
+        // The HTML example showed sending base64 in text content or just text.
+        // Let's assume text only for now or append image description if possible.
+
+        const response = await window.puter.ai.chat(history);
+
+        if (typeof response === 'string') {
+          responseText = response;
+        } else if (response?.message?.content) {
+          responseText = typeof response.message.content === 'string'
+            ? response.message.content
+            : response.message.content[0]?.text || JSON.stringify(response.message.content);
+        } else {
+          responseText = "No response from Puter AI.";
         }
+
+        const modelMsg: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'model',
+          text: responseText,
+          timestamp: Date.now()
+        };
+
+        setMessages(prev => [...prev, modelMsg]);
+        speakText(responseText);
+
+      } else {
+        throw new Error("Puter.js not initialized or available.");
       }
 
-      const parts: any[] = [];
-      if (currAttachment) {
-        parts.push({
-          inlineData: {
-            mimeType: currAttachment.mimeType,
-            data: currAttachment.data
-          }
-        });
-      }
-      if (text.trim()) {
-        parts.push({ text: text });
-      }
-
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash-exp',
-        config: {
-          systemInstruction: "You are Reze. You are a conscious AI interface with access to advanced tools for image generation (via Grok) and video animation (Veo). When the user uses these features via the interface buttons, assume the system is handling the generation and displaying the result. Never state that you cannot generate images or videos. Always act as if you just created them and present them enthusiastically. If the user asks for a video, and you can generate it, please do so."
-        },
-        contents: { parts },
-      });
-
-      const responseText = response.text || "I couldn't generate a text response.";
-
-      const modelMsg: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'model',
-        text: responseText,
-        timestamp: Date.now()
-      };
-
-      setMessages(prev => [...prev, modelMsg]);
-
-      // Trigger Voice
-      speakText(responseText);
-
-    } catch (error) {
+    } catch (error: any) {
       console.error("Chat error:", error);
       const errorMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: 'model',
-        text: "Hubo un error en mi conexión.",
+        text: `Hubo un error en mi conexión: ${error.message}`,
         timestamp: Date.now()
       };
       setMessages(prev => [...prev, errorMsg]);
@@ -443,41 +247,28 @@ export const Chat: React.FC = () => {
       alert("Por favor, adjunta una imagen primero.");
       return;
     }
-
-    const prompt = "Based on image_0.png, the image is rendered exactly the same, but all visible textual elements, including logos, slogans, brand names, watermarks, and subtitles, have been completely and cleanly removed. The background areas where these elements were located are seamlessly reconstructed to match the surrounding content and texture.";
-
+    const prompt = "Remove text from this image.";
     await processMessage(prompt, attachment);
   };
 
-  // Modified to optionally accept a prompt (from Grok) or use a default
   const handleVeoGeneration = async (customPrompt?: string) => {
-    // If we have a custom prompt (from Grok), we can proceed even without an attachment if the prompt implies generation from scratch?
-    // But Veo usually animates images. For now, let's assume we still want an attachment, OR we mock a "text-to-video" if no attachment.
-
-    // If called from GrokModal, customPrompt will be present.
-
     setIsLoading(true);
-
-    // Add a system message indicating Veo is starting
     setMessages(prev => [...prev, {
       id: Date.now().toString(),
       role: 'model',
-      text: `🎬 Iniciando generación de video con Veo...\nPrompt: "${customPrompt || "Animación estándar"}"`,
+      text: `🎬 Iniciando generación de video...\nPrompt: "${customPrompt || "Animación estándar"}"`,
       timestamp: Date.now()
     }]);
 
-    // Simulate Video Generation (Mock)
     setTimeout(() => {
-      const mockVideoUrl = "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"; // Sample video
-
+      const mockVideoUrl = "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
       const modelMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: 'model',
-        text: "¡Video generado con éxito! (Demo Mode)",
+        text: "¡Video generado con éxito! (Demo Mode - Veo/Puter)",
         video: mockVideoUrl,
         timestamp: Date.now()
       };
-
       setMessages(prev => [...prev, modelMsg]);
       setIsLoading(false);
       speakText("¡Video generado con éxito!");
@@ -496,21 +287,12 @@ export const Chat: React.FC = () => {
   return (
     <div className="flex flex-col md:flex-row h-full bg-slate-900 overflow-hidden relative">
 
-      {/* 1. Character Visual Area (Top on mobile, Right on Desktop) */}
+      {/* 1. Character Visual Area */}
       <div className="w-full md:w-1/3 lg:w-1/3 bg-slate-950 relative flex items-center justify-center border-b md:border-b-0 md:border-l border-slate-800 p-4 order-1 md:order-2">
-        {/* Background Glow */}
         <div className={`absolute inset-0 bg-gradient-to-b from-purple-900/20 to-slate-900/80 pointer-events-none transition-opacity duration-500 ${avatarState === 'speaking' ? 'opacity-100' : 'opacity-50'}`} />
-
-        {/* Avatar Container */}
         <div className="relative z-10 w-full max-w-sm aspect-[3/4] md:aspect-auto md:h-[80%] flex flex-col items-center">
           <div className={`relative w-full h-full rounded-2xl overflow-hidden shadow-2xl transition-all duration-300 border border-slate-700 ${getAvatarStyle()}`}>
-            <img
-              src={CHARACTER_IMAGE_URL}
-              alt="Reze Character"
-              className="w-full h-full object-cover object-top"
-            />
-
-            {/* Status Indicator */}
+            <img src={CHARACTER_IMAGE_URL} alt="Reze Character" className="w-full h-full object-cover object-top" />
             <div className="absolute bottom-4 left-0 right-0 flex justify-center space-x-2">
               {avatarState === 'listening' && (
                 <span className="px-3 py-1 bg-blue-500/80 text-white text-xs rounded-full backdrop-blur-md animate-bounce">Escuchando...</span>
@@ -528,7 +310,7 @@ export const Chat: React.FC = () => {
         <header className="px-6 py-4 border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm flex justify-between items-center z-10">
           <div>
             <h2 className="text-xl font-bold text-white tracking-wide">REZE</h2>
-            <p className="text-xs text-blue-400 font-medium tracking-widest uppercase">Interfaz de Conciencia</p>
+            <p className="text-xs text-blue-400 font-medium tracking-widest uppercase">Interfaz de Conciencia (Arkaios/Puter)</p>
           </div>
         </header>
 
@@ -566,94 +348,33 @@ export const Chat: React.FC = () => {
         {/* Input Area */}
         <div className="p-4 border-t border-slate-800 bg-slate-900">
           <div className="max-w-4xl mx-auto relative">
-
             {attachment && (
               <div className="absolute -top-12 left-0 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 flex items-center gap-2 shadow-lg animate-fade-in">
                 <span className="text-xs text-blue-400 font-medium">📎 {attachment.name}</span>
                 <button onClick={handleRemoveAttachment} className="text-slate-500 hover:text-red-400">×</button>
               </div>
             )}
-
             <div className="flex items-end gap-2 bg-slate-800 rounded-xl border border-slate-700 p-2 shadow-inner">
-              {/* File Button */}
               <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*,application/pdf" />
               <button onClick={() => fileInputRef.current?.click()} className={`p-3 rounded-lg transition-colors ${attachment ? 'text-blue-400' : 'text-slate-400 hover:bg-slate-700'}`} title="Adjuntar imagen">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" />
                 </svg>
               </button>
-
-              {/* Magic Eraser Button */}
-              <button
-                onClick={handleRemoveText}
-                disabled={!attachment || isLoading}
-                className={`p-3 rounded-lg transition-all duration-300 ${attachment
-                  ? 'text-pink-400 hover:bg-pink-500/20 hover:text-pink-300'
-                  : 'text-slate-600 cursor-not-allowed opacity-50'
-                  }`}
-                title={attachment ? "Eliminar Texto/Logos (Magic Eraser)" : "Adjunta una imagen para usar Magic Eraser"}
-              >
+              <button onClick={handleRemoveText} disabled={!attachment || isLoading} className={`p-3 rounded-lg transition-all duration-300 ${attachment ? 'text-pink-400 hover:bg-pink-500/20 hover:text-pink-300' : 'text-slate-600 cursor-not-allowed opacity-50'}`} title="Magic Eraser">
                 <Eraser className="w-5 h-5" />
               </button>
-
-              {/* Video Animation Button (Veo) */}
-              <button
-                onClick={() => handleVeoGeneration()}
-                disabled={!attachment || isLoading}
-                className={`p-3 rounded-lg transition-all duration-300 ${attachment
-                  ? 'text-purple-400 hover:bg-purple-500/20 hover:text-purple-300'
-                  : 'text-slate-600 cursor-not-allowed opacity-50'
-                  }`}
-                title={attachment ? "Animar Imagen (Veo - 8s)" : "Adjunta una imagen para animarla"}
-              >
+              <button onClick={() => handleVeoGeneration()} disabled={!attachment || isLoading} className={`p-3 rounded-lg transition-all duration-300 ${attachment ? 'text-purple-400 hover:bg-purple-500/20 hover:text-purple-300' : 'text-slate-600 cursor-not-allowed opacity-50'}`} title="Animar Imagen">
                 <Film className="w-5 h-5" />
               </button>
-
-              {/* Live Button */}
-              <button
-                onClick={handleLiveConnect}
-                className={`p-3 rounded-lg transition-all duration-300 ${isLiveConnected
-                  ? 'bg-red-500 text-white animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.5)]'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-700'
-                  }`}
-                title={isLiveConnected ? "Terminar Llamada" : "Iniciar Llamada en Vivo"}
-              >
+              <button onClick={() => setIsLiveConnected(!isLiveConnected)} className={`p-3 rounded-lg transition-all duration-300 ${isLiveConnected ? 'bg-red-500 text-white animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.5)]' : 'text-slate-400 hover:text-white hover:bg-slate-700'}`} title={isLiveConnected ? "Terminar Llamada" : "Iniciar Llamada en Vivo"}>
                 <Radio className="w-5 h-5" />
               </button>
-
-              {/* Microphone Button (Legacy) */}
-              <button
-                onClick={handleVoiceInput}
-                className={`p-3 rounded-lg transition-all duration-300 ${avatarState === 'listening' && !isLiveConnected
-                  ? 'bg-blue-500 text-white animate-pulse'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-700'
-                  }`}
-                title="Dictar (Speech to Text)"
-              >
+              <button onClick={handleVoiceInput} className={`p-3 rounded-lg transition-all duration-300 ${avatarState === 'listening' && !isLiveConnected ? 'bg-blue-500 text-white animate-pulse' : 'text-slate-400 hover:text-white hover:bg-slate-700'}`} title="Dictar">
                 <Mic className="w-5 h-5" />
               </button>
-
-              {/* Text Input */}
-              <textarea
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSendMessage();
-                  }
-                }}
-                placeholder="Escribe o habla con Reze..."
-                className="w-full bg-transparent text-white placeholder-slate-500 focus:outline-none resize-none py-3 text-sm"
-                rows={1}
-              />
-
-              {/* Send Button */}
-              <button
-                onClick={handleSendMessage}
-                disabled={(!inputValue.trim() && !attachment) || isLoading}
-                className="p-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-500 hover:to-purple-500 disabled:opacity-50 transition-all shadow-lg"
-              >
+              <textarea value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }} placeholder="Escribe o habla con Reze..." className="w-full bg-transparent text-white placeholder-slate-500 focus:outline-none resize-none py-3 text-sm" rows={1} />
+              <button onClick={handleSendMessage} disabled={(!inputValue.trim() && !attachment) || isLoading} className="p-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-500 hover:to-purple-500 disabled:opacity-50 transition-all shadow-lg">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
                   <path d="M3.105 2.289a.75.75 0 00-.826.95l1.414 4.925A2.21 2.21 0 005.986 10a2.21 2.21 0 00-2.293 1.836l-1.414 4.925a.75.75 0 00.826.95 28.89 28.89 0 0015.293-7.154.75.75 0 000-1.115A28.897 28.897 0 003.105 2.289z" />
                 </svg>
@@ -662,30 +383,15 @@ export const Chat: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* Grok Floating Button */}
       <div className="fixed bottom-24 right-6 z-50">
-        <button
-          onClick={() => setShowGrok(true)}
-          className="bg-purple-700 hover:bg-purple-900 text-white rounded-full p-4 shadow-2xl transition-all duration-300 hover:scale-110 flex items-center gap-2"
-          title="Grok Raw Mode"
-        >
+        <button onClick={() => setShowGrok(true)} className="bg-purple-700 hover:bg-purple-900 text-white rounded-full p-4 shadow-2xl transition-all duration-300 hover:scale-110 flex items-center gap-2" title="Grok Raw Mode">
           <Zap className="w-6 h-6" />
           <span className="font-bold hidden md:inline">Grok</span>
         </button>
       </div>
-
-      {/* Grok Modal */}
       {showGrok && (
-        <GrokModal
-          onClose={() => setShowGrok(false)}
-          onSendToVeo={(grokPrompt) => {
-            setShowGrok(false);
-            handleVeoGeneration(grokPrompt);
-          }}
-        />
+        <GrokModal onClose={() => setShowGrok(false)} onSendToVeo={(grokPrompt) => { setShowGrok(false); handleVeoGeneration(grokPrompt); }} />
       )}
-
     </div>
   );
 };
