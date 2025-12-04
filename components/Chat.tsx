@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Eraser, Film, Zap, Radio, Mic, Settings } from 'lucide-react';
+import { Eraser, Film, Zap, Radio, Mic, Settings, Image as ImageIcon } from 'lucide-react';
 import { Message } from '../types';
 import GrokModal from './GrokModal';
+import ImageGenModal from './ImageGenModal';
 
 // Configuration
 const CHARACTER_IMAGE_URL = "/avatar.jpg";
@@ -33,6 +34,9 @@ export const Chat: React.FC = () => {
 
   // Grok Modal State
   const [showGrok, setShowGrok] = useState(false);
+
+  // ImageGen Modal State
+  const [showImageGen, setShowImageGen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -297,6 +301,18 @@ export const Chat: React.FC = () => {
     }, 4000);
   };
 
+  const handleImageGenerated = (imageUrl: string, prompt: string) => {
+    const modelMsg: Message = {
+      id: Date.now().toString(),
+      role: 'model',
+      text: `🎨 Imagen generada: "${prompt}"`,
+      image: imageUrl,
+      timestamp: Date.now()
+    };
+    setMessages(prev => [...prev, modelMsg]);
+    speakText("Aquí tienes la imagen que pediste.");
+  };
+
   // --- Animation Styles ---
   const getAvatarStyle = () => {
     switch (avatarState) {
@@ -408,6 +424,9 @@ export const Chat: React.FC = () => {
               <button onClick={handleRemoveText} disabled={!attachment || isLoading} className={`p-3 rounded-lg transition-all duration-300 ${attachment ? 'text-pink-400 hover:bg-pink-500/20 hover:text-pink-300' : 'text-slate-600 cursor-not-allowed opacity-50'}`} title="Magic Eraser">
                 <Eraser className="w-5 h-5" />
               </button>
+              <button onClick={() => setShowImageGen(true)} disabled={isLoading} className={`p-3 rounded-lg transition-all duration-300 text-green-400 hover:bg-green-500/20 hover:text-green-300`} title="Crear Imagen">
+                <ImageIcon className="w-5 h-5" />
+              </button>
               <button onClick={() => handleVeoGeneration()} disabled={!attachment || isLoading} className={`p-3 rounded-lg transition-all duration-300 ${attachment ? 'text-purple-400 hover:bg-purple-500/20 hover:text-purple-300' : 'text-slate-600 cursor-not-allowed opacity-50'}`} title="Animar Imagen">
                 <Film className="w-5 h-5" />
               </button>
@@ -435,6 +454,9 @@ export const Chat: React.FC = () => {
       </div>
       {showGrok && (
         <GrokModal onClose={() => setShowGrok(false)} onSendToVeo={(grokPrompt) => { setShowGrok(false); handleVeoGeneration(grokPrompt); }} />
+      )}
+      {showImageGen && (
+        <ImageGenModal onClose={() => setShowImageGen(false)} onImageGenerated={handleImageGenerated} />
       )}
     </div>
   );
