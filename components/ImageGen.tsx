@@ -58,7 +58,8 @@ export const ImageGen: React.FC = () => {
         if (imageUrl) {
           setGeneratedImage(imageUrl);
         } else {
-          throw new Error('No image URL in response');
+          console.error("A1.art unexpected response:", data);
+          throw new Error('No image URL in response. Data: ' + JSON.stringify(data));
         }
 
       } else {
