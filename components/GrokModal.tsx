@@ -3,13 +3,12 @@ import { X, Zap } from 'lucide-react';
 
 interface GrokModalProps {
     onClose: () => void;
-    onSendToVeo?: (prompt: string) => void;
 }
 
 // API Key is now handled server-side in /api/grok.js
 
 
-const GrokModal: React.FC<GrokModalProps> = ({ onClose, onSendToVeo }) => {
+const GrokModal: React.FC<GrokModalProps> = ({ onClose }) => {
     const [prompt, setPrompt] = useState('Reze quitándose el disfraz fantasma en 5 seg, full nude reveal');
     const [uncensored, setUncensored] = useState(false);
     const [response, setResponse] = useState('');

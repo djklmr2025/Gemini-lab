@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Navigation } from './components/Navigation';
 import { Chat } from './components/Chat';
 import { ImageGen } from './components/ImageGen';
-import { VideoGen } from './components/VideoGen';
 import { AppMode } from './types';
 
 const App: React.FC = () => {
@@ -14,8 +13,6 @@ const App: React.FC = () => {
         return <Chat />;
       case AppMode.Image:
         return <ImageGen />;
-      case AppMode.Video:
-        return <VideoGen />;
       default:
         return <Chat />;
     }

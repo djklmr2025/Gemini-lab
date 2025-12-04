@@ -10,7 +10,6 @@ export const Navigation: React.FC<NavigationProps> = ({ currentMode, onModeChang
   const navItems = [
     { id: AppMode.Chat, label: 'Chat', icon: '💬' },
     { id: AppMode.Image, label: 'Creador de Imágenes', icon: '🎨' },
-    { id: AppMode.Video, label: 'Creador de Videos', icon: '🎥' },
   ];
 
   return (
@@ -28,8 +27,8 @@ export const Navigation: React.FC<NavigationProps> = ({ currentMode, onModeChang
             key={item.id}
             onClick={() => onModeChange(item.id)}
             className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ${currentMode === item.id
-                ? 'bg-purple-600/20 text-purple-400 border border-purple-600/30'
-                : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+              ? 'bg-purple-600/20 text-purple-400 border border-purple-600/30'
+              : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
               }`}
           >
             <span className="text-lg">{item.icon}</span>
