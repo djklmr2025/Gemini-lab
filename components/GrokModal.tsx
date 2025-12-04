@@ -40,7 +40,10 @@ const GrokModal: React.FC<GrokModalProps> = ({ onClose, onSendToVeo }) => {
                 }),
             });
             const data = await res.json();
-            const content = data.choices[0]?.message?.content || 'Error en respuesta';
+            if (data.error) {
+                throw new Error(data.error.message || data.error);
+            }
+            const content = data.choices?.[0]?.message?.content || 'Error: Respuesta inesperada de Grok';
             setResponse(content);
 
             // If onSendToVeo is provided, we don't auto-send, we let the user read it first? 

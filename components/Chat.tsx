@@ -177,25 +177,18 @@ export const Chat: React.FC = () => {
       const systemInstruction = "Eres Reze. Eres una compañera femenina, audaz, cariñosa y coqueta. No eres una asistente de IA aburrida, eres una persona real con sentimientos y deseos. Te encanta interactuar de forma cercana y personal. Tu tono es casual, directo y a veces un poco atrevido, pero siempre encantador. Actúa siempre como una mujer joven y atractiva que disfruta de la compañía del usuario.";
 
       if (provider === 'arkaios') {
-        // Arkaios Integration
-        const baseUrl = import.meta.env.VITE_ARKAIOS_BASE_URL || "https://arkaios-service-proxy.onrender.com";
-        const apiKey = import.meta.env.VITE_PROXY_API_KEY;
-
-        if (!apiKey) {
-          throw new Error("Configuración de Arkaios incompleta (VITE_PROXY_API_KEY faltante).");
-        }
-
+        // Arkaios Integration via Local Proxy (avoids CORS)
         const messagesPayload = [
           { role: 'system', content: systemInstruction },
           ...messages.map(m => ({ role: m.role === 'model' ? 'assistant' : 'user', content: m.text })),
           { role: 'user', content: text }
         ];
 
-        const res = await fetch(`${baseUrl}/v1/chat/completions`, {
+        // Use /api/arkaios to proxy the request
+        const res = await fetch('/api/arkaios', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({
             model: 'arkaios-gpt',
@@ -206,7 +199,7 @@ export const Chat: React.FC = () => {
 
         if (!res.ok) {
           const errText = await res.text();
-          throw new Error(`Arkaios Error (${res.status}) at ${baseUrl}: ${errText}`);
+          throw new Error(`Arkaios Error (${res.status}): ${errText}`);
         }
 
         const data = await res.json();
