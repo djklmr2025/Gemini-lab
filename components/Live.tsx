@@ -98,7 +98,7 @@ export const Live: React.FC = () => {
       const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GOOGLE_API_KEY });
 
       const sessionPromise = ai.live.connect({
-        model: 'gemini-2.5-flash-native-audio-preview-09-2025',
+        model: 'gemini-2.0-flash-exp',
         callbacks: {
           onopen: () => {
             console.log('Live session opened');
@@ -218,8 +218,8 @@ export const Live: React.FC = () => {
         <button
           onClick={handleConnect}
           className={`w-full py-4 rounded-xl font-bold text-lg transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg ${isConnected
-              ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/20'
-              : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/20'
+            ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/20'
+            : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/20'
             }`}
         >
           {isConnected ? 'End Session' : 'Start Live Conversation'}

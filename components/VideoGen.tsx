@@ -14,28 +14,22 @@ export const VideoGen: React.FC = () => {
   }, []);
 
   const checkApiKey = async () => {
-    const win = window as any;
-    if (win.aistudio && win.aistudio.hasSelectedApiKey) {
-      const hasKey = await win.aistudio.hasSelectedApiKey();
-      setHasApiKey(hasKey);
+    const key = import.meta.env.VITE_GOOGLE_API_KEY;
+    if (key) {
+      setHasApiKey(true);
     }
   };
 
-  const handleSelectKey = async () => {
-    const win = window as any;
-    if (win.aistudio && win.aistudio.openSelectKey) {
-      await win.aistudio.openSelectKey();
-      await checkApiKey();
-    }
+  const handleSelectKey = () => {
+    alert("Por favor configura VITE_GOOGLE_API_KEY en tus variables de entorno (.env o Vercel/Render).");
   };
 
   const handleGenerate = async () => {
     if (!prompt.trim() || isGenerating) return;
 
-    // Safety check for Veo
     if (!hasApiKey) {
-      await handleSelectKey();
-      if (!hasApiKey) return;
+      handleSelectKey();
+      return;
     }
 
     setIsGenerating(true);
@@ -44,7 +38,6 @@ export const VideoGen: React.FC = () => {
     setVideoUri(null);
 
     try {
-      // Create new instance to ensure we use the selected key
       const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GOOGLE_API_KEY });
 
       setStatus('Submitting request to Veo...');
@@ -60,9 +53,8 @@ export const VideoGen: React.FC = () => {
 
       setStatus('Processing... This may take a minute.');
 
-      // Polling loop
       while (!operation.done) {
-        await new Promise(resolve => setTimeout(resolve, 5000)); // Poll every 5s
+        await new Promise(resolve => setTimeout(resolve, 5000));
         setStatus('Still processing...');
         operation = await ai.operations.getVideosOperation({ operation: operation });
       }
@@ -73,8 +65,7 @@ export const VideoGen: React.FC = () => {
 
       const uri = operation.response?.generatedVideos?.[0]?.video?.uri;
       if (uri) {
-        // Must append API key to fetch the video content
-        const authenticatedUri = `${uri}&key=${process.env.API_KEY}`;
+        const authenticatedUri = `${uri}&key=${import.meta.env.VITE_GOOGLE_API_KEY}`;
         setVideoUri(authenticatedUri);
         setStatus('Complete!');
       } else {
@@ -83,10 +74,8 @@ export const VideoGen: React.FC = () => {
 
     } catch (err: any) {
       console.error("Video gen error:", err);
-      // If entity not found, it might be an invalid key issue
       if (err.message && err.message.includes('Requested entity was not found')) {
-        setError('API Key error. Please re-select your project.');
-        setHasApiKey(false); // Force re-selection
+        setError('API Key error. Please check your project configuration.');
       } else {
         setError(err.message || 'Failed to generate video');
       }
@@ -104,24 +93,14 @@ export const VideoGen: React.FC = () => {
           </div>
           <h2 className="text-2xl font-bold text-white">Veo Video Generation</h2>
           <p className="text-slate-400">
-            To use the Veo model, you must select a Google Cloud Project with billing enabled.
+            To use the Veo model, you must have VITE_GOOGLE_API_KEY configured.
           </p>
           <button
             onClick={handleSelectKey}
             className="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors shadow-lg shadow-blue-500/20"
           >
-            Select API Key
+            Check API Key
           </button>
-          <div className="text-sm text-slate-500 mt-4">
-            <a
-              href="https://ai.google.dev/gemini-api/docs/billing"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline hover:text-slate-300"
-            >
-              Learn more about billing
-            </a>
-          </div>
         </div>
       </div>
     );
@@ -156,8 +135,8 @@ export const VideoGen: React.FC = () => {
                 onClick={handleGenerate}
                 disabled={isGenerating || !prompt.trim()}
                 className={`px-6 py-3 rounded-lg font-medium transition-all ${isGenerating || !prompt.trim()
-                    ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-lg'
+                  ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-lg'
                   }`}
               >
                 {isGenerating ? 'Generating Video...' : 'Generate Video'}

@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, LiveServerMessage, Modality } from '@google/genai';
 import { Supermemory } from "supermemory";
-import { Eraser, Film, BrainCircuit, Zap } from 'lucide-react';
+import { Eraser, Film, BrainCircuit, Zap, Radio, Mic } from 'lucide-react';
+import { createPcmBlob, decodeAudioData, base64ToUint8Array } from '../utils/audioUtils';
 import { Message } from '../types';
 import GrokModal from './GrokModal';
 
@@ -40,6 +41,19 @@ export const Chat: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const speechRecognitionRef = useRef<any>(null);
+
+  // Live Mode Refs
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const processorRef = useRef<ScriptProcessorNode | null>(null);
+  const sourceNodeRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const sessionPromiseRef = useRef<Promise<any> | null>(null);
+  const nextStartTimeRef = useRef<number>(0);
+  const sourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
+
+  // Live Mode State
+  const [isLiveConnected, setIsLiveConnected] = useState(false);
+  const [liveStatus, setLiveStatus] = useState('Ready');
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -88,7 +102,187 @@ export const Chat: React.FC = () => {
 
       speechRecognitionRef.current = recognition;
     }
+
+    return () => cleanupLive();
   }, []);
+
+  const cleanupLive = () => {
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach(track => track.stop());
+      mediaStreamRef.current = null;
+    }
+    if (processorRef.current) {
+      processorRef.current.disconnect();
+      processorRef.current = null;
+    }
+    if (sourceNodeRef.current) {
+      sourceNodeRef.current.disconnect();
+      sourceNodeRef.current = null;
+    }
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+
+    // Stop all playing sources
+    sourcesRef.current.forEach(source => {
+      try { source.stop(); } catch (e) { }
+    });
+    sourcesRef.current.clear();
+
+    if (sessionPromiseRef.current) {
+      sessionPromiseRef.current.then(session => {
+        if (session && typeof session.close === 'function') {
+          session.close();
+        }
+      }).catch(() => { });
+      sessionPromiseRef.current = null;
+    }
+  };
+
+  const getGeminiApiKey = (): string | null => {
+    if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+      return process.env.API_KEY;
+    }
+    const stored = localStorage.getItem('GEMINI_API_KEY');
+    if (stored) return stored;
+
+    return DEMO_API_KEY;
+  };
+
+  const handleLiveConnect = async () => {
+    if (isLiveConnected) {
+      cleanupLive();
+      setIsLiveConnected(false);
+      setLiveStatus('Disconnected');
+      setAvatarState('idle');
+      return;
+    }
+
+    try {
+      setLiveStatus('Requesting microphone access...');
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
+
+      setLiveStatus('Connecting to Gemini Live...');
+
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      const audioCtx = new AudioContextClass({ sampleRate: 24000 });
+      audioContextRef.current = audioCtx;
+
+      const inputAudioCtx = new AudioContextClass({ sampleRate: 16000 });
+      const source = inputAudioCtx.createMediaStreamSource(stream);
+      const scriptProcessor = inputAudioCtx.createScriptProcessor(4096, 1, 1);
+
+      source.connect(scriptProcessor);
+      scriptProcessor.connect(inputAudioCtx.destination);
+
+      sourceNodeRef.current = source;
+      processorRef.current = scriptProcessor;
+
+      const apiKey = getGeminiApiKey();
+      if (!apiKey) throw new Error("No API Key available");
+
+      const ai = new GoogleGenAI({ apiKey });
+
+      const sessionPromise = ai.live.connect({
+        model: 'gemini-2.0-flash-exp',
+        callbacks: {
+          onopen: () => {
+            console.log('Live session opened');
+            setLiveStatus('Connected! Start talking.');
+            setIsLiveConnected(true);
+            setAvatarState('listening');
+
+            // Start streaming audio
+            scriptProcessor.onaudioprocess = (e) => {
+              const inputData = e.inputBuffer.getChannelData(0);
+              const pcmBlob = createPcmBlob(inputData);
+
+              if (sessionPromiseRef.current) {
+                sessionPromiseRef.current.then(session => {
+                  session.sendRealtimeInput({ media: pcmBlob });
+                });
+              }
+            };
+          },
+          onmessage: async (message: LiveServerMessage) => {
+            // Handle Audio Output
+            const base64Audio = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
+            if (base64Audio) {
+              try {
+                const ctx = audioContextRef.current;
+                if (!ctx) return;
+
+                setAvatarState('speaking');
+
+                // Ensure nextStartTime is at least current time
+                nextStartTimeRef.current = Math.max(nextStartTimeRef.current, ctx.currentTime);
+
+                const audioBytes = base64ToUint8Array(base64Audio);
+                const audioBuffer = await decodeAudioData(audioBytes, ctx, 24000, 1);
+
+                const source = ctx.createBufferSource();
+                source.buffer = audioBuffer;
+                source.connect(ctx.destination);
+
+                source.addEventListener('ended', () => {
+                  sourcesRef.current.delete(source);
+                  if (sourcesRef.current.size === 0) {
+                    setAvatarState('listening'); // Back to listening after speaking
+                  }
+                });
+
+                source.start(nextStartTimeRef.current);
+                nextStartTimeRef.current += audioBuffer.duration;
+                sourcesRef.current.add(source);
+              } catch (e) {
+                console.error("Audio decode error", e);
+              }
+            }
+
+            // Handle Interruptions
+            if (message.serverContent?.interrupted) {
+              console.log("Interrupted");
+              sourcesRef.current.forEach(s => {
+                try { s.stop(); } catch (e) { }
+              });
+              sourcesRef.current.clear();
+              nextStartTimeRef.current = 0;
+              setAvatarState('listening');
+            }
+          },
+          onclose: () => {
+            console.log('Session closed');
+            setIsLiveConnected(false);
+            setLiveStatus('Disconnected');
+            setAvatarState('idle');
+          },
+          onerror: (err) => {
+            console.error('Session error', err);
+            setLiveStatus('Connection error occurred.');
+            setIsLiveConnected(false);
+            cleanupLive();
+            setAvatarState('idle');
+          }
+        },
+        config: {
+          responseModalities: [Modality.AUDIO],
+          speechConfig: {
+            voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } }
+          }
+        }
+      });
+
+      sessionPromiseRef.current = sessionPromise;
+
+    } catch (e: any) {
+      console.error(e);
+      setLiveStatus('Error');
+      cleanupLive();
+      alert("Error connecting to Live: " + e.message);
+    }
+  };
 
   const handleVoiceInput = () => {
     if (speechRecognitionRef.current) {
@@ -155,16 +349,6 @@ export const Chat: React.FC = () => {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const getGeminiApiKey = (): string | null => {
-    if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
-      return process.env.API_KEY;
-    }
-    const stored = localStorage.getItem('GEMINI_API_KEY');
-    if (stored) return stored;
-
-    return DEMO_API_KEY;
-  };
-
   const processMessage = async (text: string, currAttachment: Attachment | null) => {
     if (isLoading) return;
 
@@ -214,7 +398,7 @@ export const Chat: React.FC = () => {
       }
 
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-2.0-flash-exp',
         config: {
           systemInstruction: "You are Reze. You are a conscious AI interface with access to advanced tools for image generation (via Grok) and video animation (Veo). When the user uses these features via the interface buttons, assume the system is handling the generation and displaying the result. Never state that you cannot generate images or videos. Always act as if you just created them and present them enthusiastically. If the user asks for a video, and you can generate it, please do so."
         },
@@ -425,18 +609,28 @@ export const Chat: React.FC = () => {
                 <Film className="w-5 h-5" />
               </button>
 
-              {/* Microphone Button */}
+              {/* Live Button */}
               <button
-                onClick={handleVoiceInput}
-                className={`p-3 rounded-lg transition-all duration-300 ${avatarState === 'listening'
-                  ? 'bg-red-500 text-white animate-pulse'
+                onClick={handleLiveConnect}
+                className={`p-3 rounded-lg transition-all duration-300 ${isLiveConnected
+                  ? 'bg-red-500 text-white animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.5)]'
                   : 'text-slate-400 hover:text-white hover:bg-slate-700'
                   }`}
-                title="Hablar (Hold or Click)"
+                title={isLiveConnected ? "Terminar Llamada" : "Iniciar Llamada en Vivo"}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
-                </svg>
+                <Radio className="w-5 h-5" />
+              </button>
+
+              {/* Microphone Button (Legacy) */}
+              <button
+                onClick={handleVoiceInput}
+                className={`p-3 rounded-lg transition-all duration-300 ${avatarState === 'listening' && !isLiveConnected
+                  ? 'bg-blue-500 text-white animate-pulse'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-700'
+                  }`}
+                title="Dictar (Speech to Text)"
+              >
+                <Mic className="w-5 h-5" />
               </button>
 
               {/* Text Input */}

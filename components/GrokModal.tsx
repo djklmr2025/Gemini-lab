@@ -6,7 +6,8 @@ interface GrokModalProps {
     onSendToVeo?: (prompt: string) => void;
 }
 
-const GROK_API_KEY = import.meta.env.VITE_GROK_API_KEY || "";
+// API Key is now handled server-side in /api/grok.js
+
 
 const GrokModal: React.FC<GrokModalProps> = ({ onClose, onSendToVeo }) => {
     const [prompt, setPrompt] = useState('Reze quitándose el disfraz fantasma en 5 seg, full nude reveal');
@@ -17,10 +18,10 @@ const GrokModal: React.FC<GrokModalProps> = ({ onClose, onSendToVeo }) => {
     const sendToGrok = async () => {
         setLoading(true);
         try {
-            const res = await fetch('https://api.x.ai/v1/chat/completions', {
+            // Use local proxy to avoid CORS and hide API key
+            const res = await fetch('/api/grok', {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${GROK_API_KEY}`,
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
@@ -47,12 +48,12 @@ const GrokModal: React.FC<GrokModalProps> = ({ onClose, onSendToVeo }) => {
             // Let's add a button for that in the response area if onSendToVeo is present.
         } catch (error: any) {
             console.error("Grok API Error:", error);
-            let errorMsg = 'Error: Verifica tu conexión o API key.';
+            let errorMsg = 'Error: Verifica tu conexión.';
 
-            if (!GROK_API_KEY) {
-                errorMsg = 'Error: Falta la API Key (VITE_GROK_API_KEY). Configúrala en Vercel/Render.';
-            } else if (error.message && error.message.includes('Failed to fetch')) {
-                errorMsg = 'Error de CORS o Red. La API de xAI no permite acceso directo desde el navegador. Necesitas un proxy.';
+            if (error.message && error.message.includes('Failed to fetch')) {
+                errorMsg = 'Error de conexión con el servidor (Proxy).';
+            } else {
+                errorMsg = `Error: ${error.message || 'Error desconocido'}`;
             }
 
             setResponse(errorMsg);
