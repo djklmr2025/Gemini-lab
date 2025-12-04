@@ -9,7 +9,6 @@ interface NavigationProps {
 export const Navigation: React.FC<NavigationProps> = ({ currentMode, onModeChange }) => {
   const navItems = [
     { id: AppMode.Chat, label: 'Chat', icon: '💬' },
-    { id: AppMode.Image, label: 'Creador de Imágenes', icon: '🎨' },
   ];
 
   return (
