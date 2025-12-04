@@ -24,13 +24,13 @@ export default async function handler(req, res) {
     }
 
     try {
-        // Trying the documented endpoint with multiple header variations to be safe
+        // Trying the documented endpoint with correct headers
         const response = await fetch('https://a1.art/open-api/v1/a1/images/generate', {
             method: 'POST',
             headers: {
-                'apiKey': apiKey,           // Documented header
-                'Authorization': `Bearer ${apiKey}`, // Fallback
+                'apiKey': apiKey,
                 'Content-Type': 'application/json',
+                'User-Agent': 'Mozilla/5.0 (compatible; Gemini-Lab/1.0)',
             },
             body: JSON.stringify(req.body),
         });
