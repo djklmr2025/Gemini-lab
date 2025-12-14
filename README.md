@@ -2,7 +2,7 @@
 
 ![Reze Character](/public/avatar.jpg)
 
-**Gemini Lab** Pruebalo en linea Ahora: "https://gemini-lab-hbpg.onrender.com/"
+**Gemini Lab** Pruebalo en linea Ahora: "https://gemini-lab-ten.vercel.app/"
 is an advanced AI chat interface featuring **Reze**, a character with a distinct personality, capable of voice interaction, visual perception, and advanced image editing capabilities powered by Google Gemini and Veo.
 
 ## ✨ Key Features
@@ -65,8 +65,7 @@ Open your browser and navigate to `http://localhost:5173` (or the port shown in 
 ## 📦 Deployment
 
 This project is configured for deployment on:
-- **Render**: [Live App](https://gemini-lab-hbpg.onrender.com) (Static Site / Web Service)
-- **Vercel**: [Live App](https://gemini-a50zq65sn-arkaios-projects.vercel.app) (Single Page Application)
+- **Vercel**: [Live App](https://gemini-lab-ten.vercel.app/) (Single Page Application)
 
 ## 📝 License
 
