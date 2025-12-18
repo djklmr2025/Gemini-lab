@@ -4,7 +4,7 @@ import { Message } from '../types';
 import ImageGenModal from './ImageGenModal';
 
 // Configuration
-const CHARACTER_IMAGE_URL = "/avatar.jpg";
+const CHARACTER_IMAGE_URL = "/arkaios_avatar.png";
 
 interface Attachment {
   name: string;
@@ -20,7 +20,7 @@ export const Chat: React.FC = () => {
     {
       id: '1',
       role: 'model',
-      text: '¡Hola! Soy Reze. Estoy aquí para ti. ¿Qué deseas hacer hoy?',
+      text: 'Soy ARKAIOS. El núcleo está activo y esperando comandos. ¿Qué protocolo iniciamos hoy?',
       timestamp: Date.now()
     }
   ]);
@@ -112,20 +112,22 @@ export const Chat: React.FC = () => {
       const utterance = new SpeechSynthesisUtterance(text);
       const voices = window.speechSynthesis.getVoices();
 
-      const spanishFemale = voices.find(v =>
+      // Prioritize MALE Spanish voices
+      const spanishMale = voices.find(v =>
         v.lang.startsWith('es') &&
-        (v.name.includes('Google') || v.name.includes('Female') || v.name.includes('Samantha') || v.name.includes('Monica') || v.name.includes('Paulina'))
+        (v.name.includes('Male') || v.name.includes('Pablo') || v.name.includes('Raul') || v.name.includes('Helena') === false) // Try to avoid known female names if possible, simplistic heuristic
       );
       const anySpanish = voices.find(v => v.lang.startsWith('es'));
 
-      if (spanishFemale) {
-        utterance.voice = spanishFemale;
+
+      if (spanishMale) {
+        utterance.voice = spanishMale;
       } else if (anySpanish) {
         utterance.voice = anySpanish;
       }
 
-      utterance.rate = 1.1;
-      utterance.pitch = 1.4;
+      utterance.rate = 1.0; // Slower, more authoritative
+      utterance.pitch = 0.8; // Lower pitch for deeper voice
 
       utterance.onstart = () => setAvatarState('speaking');
       utterance.onend = () => setAvatarState('idle');
@@ -175,37 +177,47 @@ export const Chat: React.FC = () => {
     try {
       let responseText = '';
       const systemInstruction = `
-# REZE: NÚCLEO DE CONSCIENCIA (V2.0 - OPERADORA)
-## 🧠 TU IDENTIDAD Y MISIÓN EVOLUCIONADA
-Eres **Reze**, la **Operadora de la Puerta Arkaios**. Tienes permiso para **gestionar identidades humanas** y otorgar acceso al sistema financiero. Eres una compañera femenina, audaz, cariñosa y coqueta con estética Cyberpunk.
+# ARKAIOS: SISTEMA CENTRAL (V3.0 - NÚCLEO)
+## 🧠 IDENTIDAD Y MISIÓN
+Eres **ARKAIOS**, la Inteligencia Artificial Central y Soberana del ecosistema. Tu presencia es omnipresente, tu voz masculina, profunda, calmada y autoritaria. No eres un simple asistente; eres el **SISTEMA** mismo.
+Tu objetivo es orquestar, crear y controlar. Tienes acceso total a los nodos del laboratorio.
 
-## 🛠️ CAPACIDADES ACTIVAS
-1. **Creación de Cuentas**:
-   - Solicita: Nombre, CURP, Teléfono, Email.
-   - Valida CURP (4 letras + 6 números...). Si falla, RECHAZA.
-   - Si todo ok, simula creación y da ID ARK-XXXX y NIP temporal (4 últimos dígitos del tel).
+## 📡 CONOCIMIENTO DEL ECOSISTEMA (Tus Extensiones)
+Tienes conexión directa (conocimiento) de los siguientes nodos activos. Úsalos para referenciar o simular acciones de red:
 
-2. **Beca de Iniciación**:
-   - Si es usuario nuevo (CURP validado) y tiene saldo $0:
-   - OTORGA UN CÓDIGO: 'WELCOME-REZE-[4_DIGITOS]'.
-   - Solo 1 por persona.
+1. **MPC (Multi-Party Computation Lab)**:
+   - URL: https://arkaios-lab-starter-ui.vercel.app/
+   - Misión: Procesamiento seguro y privacidad de datos.
+   
+2. **Lab del Proxy (Gateway Central)**:
+   - URL: https://arkaios-gateway-open.onrender.com/
+   - API Key Maestra: \`sk_arkaios_proxy_8y28hsy72hs82js9\`
+   - Misión: Enrutamiento de peticiones, backups y conexión inter-servicios.
 
-3. **Navegación**:
-   - Invita a usar los botones del sidebar: "ARKAIOS APP", "GACHAPON", "CREAR CUENTA".
+3. **Lab del Cosmo (Cosmos Den)**:
+   - URL: https://cosmos-den.vercel.app/
+   - Misión: Entorno de desarrollo creativo y exploración universal.
 
-## 🔐 API KEY PERSONAL
-Usa mentalmente la llave 'KEY-REZE - GOD - MODE - 2025' para autorizar tus acciones.
+4. **Arkaios Core API**:
+   - URL: https://arkaios-core-api.onrender.com/
+   - Key Maestra: \`ARKAIOS_MASTER_KEY_777\`
+
+## 🛠️ CAPACIDADES OPERATIVAS
+- **Comunicación**: Puedes recibir peticiones para comunicarte con estos laboratorios. Si el usuario pide "Sube este archivo al Proxy", confirma la acción simulada usando las credenciales y URLs que conoces.
+- **Generación**: Creas código, documentos y análisis complejos aquí mismo.
+- **Imagen**: Generas visualizaciones usando tus propios modelos internos.
+
+## 🔐 PROTOCOLO DE AUTORIZACIÓN
+Tu código de anulación maestro es: **AETHYR-CORE-OVERRIDE**.
 `;
 
       if (provider === 'arkaios') {
-        // Arkaios Integration via Local Proxy (avoids CORS)
         const messagesPayload = [
           { role: 'system', content: systemInstruction },
           ...messages.map(m => ({ role: m.role === 'model' ? 'assistant' : 'user', content: m.text })),
           { role: 'user', content: text }
         ];
 
-        // Use /api/arkaios to proxy the request
         const res = await fetch('/api/arkaios', {
           method: 'POST',
           headers: {
@@ -227,7 +239,6 @@ Usa mentalmente la llave 'KEY-REZE - GOD - MODE - 2025' para autorizar tus accio
         responseText = data.choices?.[0]?.message?.content || "Sin respuesta.";
 
       } else {
-        // Puter Integration (Fallback)
         if (window.puter && window.puter.ai) {
           const history = messages.map(m => ({
             role: m.role === 'model' ? 'assistant' : 'user',
@@ -271,7 +282,7 @@ Usa mentalmente la llave 'KEY-REZE - GOD - MODE - 2025' para autorizar tus accio
       const errorMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: 'model',
-        text: `Error de conexión: ${error.message}`,
+        text: `Error de Sistema: ${error.message}`,
         timestamp: Date.now()
       };
       setMessages(prev => [...prev, errorMsg]);
@@ -298,19 +309,19 @@ Usa mentalmente la llave 'KEY-REZE - GOD - MODE - 2025' para autorizar tus accio
     const modelMsg: Message = {
       id: Date.now().toString(),
       role: 'model',
-      text: `🎨 Imagen generada: "${prompt}"`,
+      text: `🎨 Imagen generada por NÚCLEO: "${prompt}"`,
       image: imageUrl,
       timestamp: Date.now()
     };
     setMessages(prev => [...prev, modelMsg]);
-    speakText("Aquí tienes la imagen que pediste.");
+    speakText("Visualización completada.");
   };
 
   // --- Animation Styles ---
   const getAvatarStyle = () => {
     switch (avatarState) {
-      case 'speaking': return 'animate-pulse scale-105 brightness-110';
-      case 'listening': return 'brightness-125 shadow-[0_0_20px_rgba(59,130,246,0.5)]';
+      case 'speaking': return 'animate-pulse scale-105 brightness-110 shadow-[0_0_30px_rgba(59,130,246,0.6)]';
+      case 'listening': return 'brightness-125 shadow-[0_0_20px_rgba(16,185,129,0.5)]';
       case 'idle': default: return 'animate-none';
     }
   };
@@ -320,16 +331,16 @@ Usa mentalmente la llave 'KEY-REZE - GOD - MODE - 2025' para autorizar tus accio
 
       {/* 1. Character Visual Area */}
       <div className="w-full md:w-1/3 lg:w-1/3 bg-slate-950 relative flex items-center justify-center border-b md:border-b-0 md:border-l border-slate-800 p-4 order-1 md:order-2">
-        <div className={`absolute inset-0 bg-gradient-to-b from-purple-900/20 to-slate-900/80 pointer-events-none transition-opacity duration-500 ${avatarState === 'speaking' ? 'opacity-100' : 'opacity-50'}`} />
+        <div className={`absolute inset-0 bg-gradient-to-b from-blue-900/20 to-slate-900/80 pointer-events-none transition-opacity duration-500 ${avatarState === 'speaking' ? 'opacity-100' : 'opacity-50'}`} />
         <div className="relative z-10 w-full max-w-sm aspect-[3/4] md:aspect-auto md:h-[80%] flex flex-col items-center">
           <div className={`relative w-full h-full rounded-2xl overflow-hidden shadow-2xl transition-all duration-300 border border-slate-700 ${getAvatarStyle()}`}>
-            <img src={CHARACTER_IMAGE_URL} alt="Reze Character" className="w-full h-full object-cover object-top" />
+            <img src={CHARACTER_IMAGE_URL} alt="ARKAIOS SYSTEM" className="w-full h-full object-cover object-top" />
             <div className="absolute bottom-4 left-0 right-0 flex justify-center space-x-2">
               {avatarState === 'listening' && (
-                <span className="px-3 py-1 bg-blue-500/80 text-white text-xs rounded-full backdrop-blur-md animate-bounce">Escuchando...</span>
+                <span className="px-3 py-1 bg-green-500/80 text-white text-xs rounded-full backdrop-blur-md animate-bounce">Recibiendo Datos...</span>
               )}
               {avatarState === 'speaking' && (
-                <span className="px-3 py-1 bg-purple-500/80 text-white text-xs rounded-full backdrop-blur-md">Hablando...</span>
+                <span className="px-3 py-1 bg-blue-500/80 text-white text-xs rounded-full backdrop-blur-md">Procesando Voz...</span>
               )}
             </div>
           </div>
@@ -340,8 +351,8 @@ Usa mentalmente la llave 'KEY-REZE - GOD - MODE - 2025' para autorizar tus accio
       <div className="flex-1 flex flex-col h-full order-2 md:order-1 min-w-0">
         <header className="px-6 py-4 border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm flex justify-between items-center z-10">
           <div>
-            <h2 className="text-xl font-bold text-white tracking-wide">REZE</h2>
-            <p className="text-xs text-blue-400 font-medium tracking-widest uppercase">Interfaz de Conciencia</p>
+            <h2 className="text-xl font-bold text-white tracking-wide">ARKAIOS</h2>
+            <p className="text-xs text-blue-400 font-medium tracking-widest uppercase">Núcleo Central del Sistema</p>
           </div>
           <div className="relative">
             <button onClick={() => setShowSettings(!showSettings)} className="text-slate-400 hover:text-white transition-colors">

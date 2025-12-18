@@ -99,3 +99,9 @@ Socket.readFromStdout (C:\ar
 kaios\Gemini-lab-1\node_modu
 les\vite\node_modules\esbuil
 d\lib\main.js:600:7)
+[2m10:13:20 p.m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/components/ArkaiosComponents.tsx[22m
+[2m10:34:21 p.m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/components/ArkaiosComponents.tsx[22m
+[2m10:37:40 p.m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/components/ArkaiosComponents.tsx[22m
+[2m10:47:53 p.m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/components/Chat.tsx[22m
+[2m10:48:02 p.m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/components/Navigation.tsx[22m
+[2m10:48:11 p.m.[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/components/ArkaiosComponents.tsx[22m

@@ -16,10 +16,10 @@ export const Navigation: React.FC<NavigationProps> = ({ currentMode, onModeChang
   return (
     <nav className="w-full md:w-64 bg-slate-900 border-r border-slate-800 flex flex-col p-4">
       <div className="mb-8 px-2">
-        <h1 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">
-          REZE
+        <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-cyan-500 bg-clip-text text-transparent">
+          ARKAIOS
         </h1>
-        <p className="text-xs text-slate-500 mt-1">Tu Compañera Virtual</p>
+        <p className="text-xs text-slate-500 mt-1">Sistema Central</p>
       </div>
 
       <div className="flex-1 space-y-2">

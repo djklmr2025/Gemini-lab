@@ -1,0 +1,265 @@
+======================================================
+ SECCIÓN 0 · LLAVES GLOBALES ARKAIOS / AIDA / PROXY
+======================================================
+
+# Estas llaves se usan en varios repos, no solo en uno.
+
+# Claves maestras
+ARKAIOS_MASTER_KEY_777            # clave interna maestra (RESTORE_INTERNAL_KEY / ARKAIOS_API_KEY)
+sk_arkaios_proxy_8y28hsy72hs82js9 # PROXY_API_KEY / REMOTE_BACKUP_KEY
+sk_arkaios_internal_83jhs72k9ss92b# ARKAIOS_INTERNAL_KEY
+sk_aida_internal_c7t9g392ksqz77   # AIDA_INTERNAL_KEY
+
+# Tokens externos / gateway
+AIDA_PUBLIC_TOKEN=aOQ1ZQ4gyF5bkgxkiwPEFgkrUMW31ZEwVhOITkLRO5jaImetmUlYJegOdwG
+AIDA_AUTH_TOKEN=KaOQ1ZQ4gyF5bkgxkiwPEFgkrUMW31ZEwVhOITkLRO5jaImetmUlYJegOdwG
+
+# Rutas base del ecosistema
+ARKAIOS_BASE_URL=https://arkaios-gateway-open.onrender.com
+AIDA_BASE_URL=https://arkaios-api.onrender.com
+AIDA_GATEWAY_URL=https://arkaios-gateway-open.onrender.com/aida/gateway
+
+# Endpoints de backup vía proxy
+REMOTE_BACKUP_URL=https://arkaios-service-proxy.onrender.com/v1/backup/store
+REMOTE_RESTORE_URL=https://arkaios-service-proxy.onrender.com/v1/backup
+
+RESTORE_BASE_URL=https://arkaios-core-api.onrender.com
+RESTORE_PATH=/admin/restore
+
+######################################################
+# IMPORTANTE: GitHub PAT visto en git push:
+#   github_pat_11BWJRCKY0...
+# Ese PAT ya quedó expuesto en texto plano.
+# Recomendado: revocar en GitHub y crear uno nuevo.
+######################################################
+
+
+======================================================
+ REPO 1 · arkaios-neural-agent-main
+======================================================
+GitHub:   https://github.com/djklmr2025/arkaios-neural-agent-main
+Online:   (sin despliegue)
+
+# Sugerido .env (usa el gateway y llaves internas)
+ARKAIOS_BASE_URL=https://arkaios-gateway-open.onrender.com
+AIDA_BASE_URL=https://arkaios-api.onrender.com
+
+ARKAIOS_INTERNAL_KEY=sk_arkaios_internal_83jhs72k9ss92b
+AIDA_INTERNAL_KEY=sk_aida_internal_c7t9g392ksqz77
+
+# Si el agente llama a un modelo vía proxy:
+PROXY_API_KEY=sk_arkaios_proxy_8y28hsy72hs82js9
+
+
+======================================================
+ REPO 2 · VEO-Free-Creator
+======================================================
+GitHub:   https://github.com/djklmr2025/VEO-Free-Creator
+Online:   https://veo-free-creator.vercel.app/
+
+# No vi env directo en tus archivos.
+# Plantilla para que lo organices:
+VEO_API_KEY=TU_CLAVE_DE_VEO
+OPENAI_API_KEY=TU_OPENAI_SI_APLICA
+VERCEL_ANALYTICS_TOKEN=...
+
+
+======================================================
+ REPO 3 · arkaios-core-api
+======================================================
+GitHub:   https://github.com/djklmr2025/arkaios-core-api
+Online:   https://arkaios-core-api.onrender.com/
+
+# .env principal (server de Core API)
+ARKAIOS_API_KEY=ARKAIOS_MASTER_KEY_777
+# Esta misma clave se usa como RESTORE_INTERNAL_KEY en el proxy.
+
+# Backup remoto hacia el proxy (desde core-api / daemon)
+REMOTE_BACKUP_ENABLED=true
+REMOTE_BACKUP_KEY=sk_arkaios_proxy_8y28hsy72hs82js9
+REMOTE_BACKUP_URL=https://arkaios-service-proxy.onrender.com/v1/backup/store
+REMOTE_RESTORE_URL=https://arkaios-service-proxy.onrender.com/v1/backup
+
+# Otros típicos (placeholder si no estaban en los env)
+DATABASE_URL=postgres://...
+JWT_SECRET=pon_un_secreto_largo
+NODE_ENV=production
+
+
+======================================================
+ REPO 4 · arkaios-service-proxy
+======================================================
+GitHub:   https://github.com/djklmr2025/arkaios-service-proxy
+Online:   https://arkaios-gateway-open.onrender.com/
+
+# proxy.env
+PROXY_API_KEY=sk_arkaios_proxy_8y28hsy72hs82js9
+RESTORE_BASE_URL=https://arkaios-core-api.onrender.com
+RESTORE_PATH=/admin/restore
+RESTORE_INTERNAL_KEY=ARKAIOS_MASTER_KEY_777
+
+# Para exponer /v1/chat/completions etc.
+ARKAIOS_BASE_URL=https://arkaios-gateway-open.onrender.com
+AIDA_BASE_URL=https://arkaios-api.onrender.com
+
+# Opcional: logging, timeouts
+BACKUP_TIMEOUT_MS=60000
+LOG_LEVEL=info
+
+
+======================================================
+ REPO 5 · GEMINI-API-KEY (veo-backend)
+======================================================
+GitHub:   https://github.com/djklmr2025/GEMINI-API-KEY
+Online:   https://veo-backend.onrender.com/
+
+# No vi la key exacta en los archivos.
+GEMINI_API_KEY=TU_GEMINI_KEY_REAL
+NODE_ENV=production
+
+
+======================================================
+ REPO 6 · lobe-chat-arkaios
+======================================================
+GitHub:   https://github.com/djklmr2025/lobe-chat-arkaios
+Online:   (sin despliegue aún, nota para Vercel)
+
+# Según la nota: NO usar ACCESS_CODE.
+# Se debe usar el proxy como "OPENAI_API_KEY":
+OPENAI_API_KEY=sk_arkaios_proxy_8y28hsy72hs82js9
+# ACCESS_CODE debe quedar vacío o eliminarse.
+
+# Opcionales
+NEXTAUTH_SECRET=...
+NEXTAUTH_URL=https://TU_DOMINIO
+NODE_ENV=production
+
+
+======================================================
+ REPO 7 · IA-ARKAIOS
+======================================================
+GitHub:   https://github.com/djklmr2025/IA-ARKAIOS
+
+# Recomendada la misma convención que Neural Agent:
+ARKAIOS_BASE_URL=https://arkaios-gateway-open.onrender.com
+AIDA_BASE_URL=https://arkaios-api.onrender.com
+
+ARKAIOS_INTERNAL_KEY=sk_arkaios_internal_83jhs72k9ss92b
+AIDA_INTERNAL_KEY=sk_aida_internal_c7t9g392ksqz77
+
+PROXY_API_KEY=sk_arkaios_proxy_8y28hsy72hs82js9
+
+
+======================================================
+ REPO 8 · arkaios-lab-starter (Server MPC)
+======================================================
+GitHub:   https://github.com/djklmr2025/arkaios-lab-starter
+Online:   https://arkaios-lab-starter-ui.vercel.app/
+          https://arkaios-api.onrender.com/
+
+# MCP server (según mcp conection for IA´s)
+AIDA_GATEWAY_URL=https://arkaios-gateway-open.onrender.com/aida/gateway
+AIDA_AUTH_TOKEN=KaOQ1ZQ4gyF5bkgxkiwPEFgkrUMW31ZEwVhOITkLRO5jaImetmUlYJegOdwG
+
+# Para el lado UI / gateway:
+ARKAIOS_BASE_URL=https://arkaios-gateway-open.onrender.com
+AIDA_BASE_URL=https://arkaios-api.onrender.com
+
+# Si hay servidor files, supabase, etc., se añaden aquí:
+SUPABASE_URL=...
+SUPABASE_ANON_KEY=...
+
+
+======================================================
+ REPO 9 · cosmos-den
+======================================================
+GitHub:   https://github.com/djklmr2025/cosmos-den
+Online:   https://cosmos-den.vercel.app/
+
+# No vi envs específicos en los archivos que mandaste hoy,
+# pero en otros chats ya usabas Puter y/o Supabase aquí.
+PUTER_API_KEY=TU_TOKEN_DE_PUTER
+SUPABASE_URL=...
+SUPABASE_ANON_KEY=...
+
+
+======================================================
+ REPO 10 · ARK-AI-OS
+======================================================
+GitHub:   https://github.com/djklmr2025/ARK-AI-OS
+Online:   (sin despliegue)
+
+# Plantilla mínima
+ARKAIOS_BASE_URL=https://arkaios-gateway-open.onrender.com
+AIDA_BASE_URL=https://arkaios-api.onrender.com
+PROXY_API_KEY=sk_arkaios_proxy_8y28hsy72hs82js9
+
+
+======================================================
+ REPO 11 · arkaios-vivo-dashboard
+======================================================
+GitHub:   https://github.com/djklmr2025/arkaios-vivo-dashboard
+Online:   https://arkaios-vivo-dashboard.vercel.app/
+          https://arkaios-vivo-dashboard.onrender.com/
+
+# Dashboard que orquesta el bus.
+# Usa el proxy y/o gateway.
+PROXY_API_KEY=sk_arkaios_proxy_8y28hsy72hs82js9
+ARKAIOS_BASE_URL=https://arkaios-gateway-open.onrender.com
+AIDA_BASE_URL=https://arkaios-api.onrender.com
+
+# Si usa Redis o similar:
+REDIS_URL=redis://...
+REDIS_PREFIX=arkaios:vivo:
+
+
+======================================================
+ REPO 12 · builderOS_Lab
+======================================================
+GitHub:   https://github.com/djklmr2025/builderOS_Lab
+Online:   https://arkaios-gateway-open.onrender.com
+          https://djklmr2025.github.io/builderOS_Lab/
+          https://djklmr2025.github.io/builderOS_Lab/puter.html?gw=https://arkaios-gateway-open.onrender.com/aida/gateway
+
+# Intención: laboratorio conectado al gateway y Puter.
+BUILDER_OS_KEY=CLAVE_INTERNA_BUILDER
+AIDA_GATEWAY_URL=https://arkaios-gateway-open.onrender.com/aida/gateway
+AIDA_AUTH_TOKEN=KaOQ1ZQ4gyF5bkgxkiwPEFgkrUMW31ZEwVhOITkLRO5jaImetmUlYJegOdwG
+PROXY_API_KEY=sk_arkaios_proxy_8y28hsy72hs82js9
+
+# Si integra Puter:
+PUTER_API_KEY=...
+
+
+======================================================
+ REPO 13 · arkaios-agent-ai-site
+======================================================
+GitHub:   https://github.com/djklmr2025/arkaios-agent-ai-site
+Online:   https://arkaios-agent-ai-site.vercel.app/
+
+# Sitio estático que llama al gateway/proxy.
+OPENAI_API_KEY=sk_arkaios_proxy_8y28hsy72hs82js9
+ARKAIOS_BASE_URL=https://arkaios-gateway-open.onrender.com
+
+
+======================================================
+ REPO 14 · arkaios-extension
+======================================================
+GitHub:   https://github.com/djklmr2025/arkaios-extension
+Online:   https://djklmr2025.github.io/arkaios-extension/
+
+# Extensión que se conecta al gateway.
+EXTENSION_TOKEN=TOKEN_CLIENTE_EXTENSION
+AIDA_GATEWAY_URL=https://arkaios-gateway-open.onrender.com/aida/gateway
+AIDA_AUTH_TOKEN=KaOQ1ZQ4gyF5bkgxkiwPEFgkrUMW31ZEwVhOITkLRO5jaImetmUlYJegOdwG
+
+
+======================================================
+ REPO 15 · PRIMORDIAL-VAULT
+======================================================
+GitHub:   https://github.com/djklmr2025/PRIMORDIAL-VAULT
+Online:   (sin despliegue)
+
+# Bóveda de configuraciones / seeds / prompts.
+SECRET_VAULT_KEY=CLAVE_INTERNA_VAULT
+INTERNAL_AGENT_KEY=OTRA_CLAVE_INTERNA

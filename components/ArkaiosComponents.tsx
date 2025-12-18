@@ -1,7 +1,7 @@
 import React from 'react';
 
 // ============================================================================
-// KIT DE INTERFAZ ARKAIOS PARA REZE (V2.0)
+// KIT DE INTERFAZ DE MANDO ARKAIOS (V3.0)
 // Integra estos componentes en el Sidebar o bajo el botón de Chat de Reze
 // ============================================================================
 
