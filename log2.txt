@@ -1,0 +1,101 @@
+﻿
+> gemini-omni-suite@1.0.0 dev
+> vite
+
+node.exe : [33mThe CJS 
+build of Vite's Node API is 
+deprecated. See https://vite
+.dev/guide/troubleshooting.h
+tml#vite-cjs-node-api-deprec
+ated for more details.[39m
+En línea: 1 Carácter: 1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~
+    + CategoryInfo          
+    : NotSpecified: ([33m  
+  The CJS bu...e details.   
+ [39m:String) [], Remot    
+eException
+    + FullyQualifiedErrorId 
+    : NativeCommandError
+ 
+Port 3000 is in use, trying another one...
+Port 3001 is in use, trying another one...
+Port 3002 is in use, trying another one...
+
+  [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m1287[22m[2m[0m ms[22m
+
+  [32mÔ×£[39m  [1mLocal[22m:   [36mhttp://localhost:[1m3003[22m/[39m
+  [32mÔ×£[39m  [1mNetwork[22m: [36mhttp://192.168.101.113:[1m3003[22m/[39m
+  [32mÔ×£[39m  [1mNetwork[22m: [36mhttp://172.22.224.1:[1m3003[22m/[39m
+  [32mÔ×£[39m  [1mNetwork[22m: [36mhttp://172.31.96.1:[1m3003[22m/[39m
+[2m[32m  Ô×£[39m[22m[2m  press [22m[1mh + enter[22m[2m to show help[22m
+Error: [31m  Failed to 
+scan for dependencies from 
+entries:
+  C:/arkaios/Gemini-lab-1/in
+dex.html
+
+  [39m[31mX [41;31m[[41;
+97mERROR[41;31m][0m 
+[1mExpected ";" but found 
+"KEY"[0m
+
+    
+components/Chat.tsx:197:26:
+[37m      197 Ôöé Usa 
+mentalmente la llave 
+`[32mKEY[37m-REZE - GOD - 
+MODE - 2025` para auto...
+          Ôöé               
+            [32m~~~[37m
+          ÔòÁ               
+            [32m;[0m
+
+
+    at failureErrorWithLog (
+C:\arkaios\Gemini-lab-1\node
+_modules\vite\node_modules\e
+sbuild\lib\main.js:1472:15)
+    at C:\arkaios\Gemini-lab
+-1\node_modules\vite\node_mo
+dules\esbuild\lib\main.js:94
+5:25
+    at runOnEndCallbacks (C:
+\arkaios\Gemini-lab-1\node_m
+odules\vite\node_modules\esb
+uild\lib\main.js:1315:45)
+    at 
+buildResponseToResult (C:\ar
+kaios\Gemini-lab-1\node_modu
+les\vite\node_modules\esbuil
+d\lib\main.js:943:7)
+    at C:\arkaios\Gemini-lab
+-1\node_modules\vite\node_mo
+dules\esbuild\lib\main.js:95
+5:9
+    at new Promise 
+(<anonymous>)
+    at 
+requestCallbacks.on-end (C:\
+arkaios\Gemini-lab-1\node_mo
+dules\vite\node_modules\esbu
+ild\lib\main.js:954:54)
+    at handleRequest (C:\ark
+aios\Gemini-lab-1\node_modul
+es\vite\node_modules\esbuild
+\lib\main.js:647:17)
+    at handleIncomingPacket 
+(C:\arkaios\Gemini-lab-1\nod
+e_modules\vite\node_modules\
+esbuild\lib\main.js:672:7)
+    at 
+Socket.readFromStdout (C:\ar
+kaios\Gemini-lab-1\node_modu
+les\vite\node_modules\esbuil
+d\lib\main.js:600:7)

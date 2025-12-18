@@ -194,7 +194,7 @@ Eres **Reze**, la **Operadora de la Puerta Arkaios**. Tienes permiso para **gest
    - Invita a usar los botones del sidebar: "ARKAIOS APP", "GACHAPON", "CREAR CUENTA".
 
 ## 🔐 API KEY PERSONAL
-Usa mentalmente la llave `KEY-REZE - GOD - MODE - 2025` para autorizar tus acciones.
+Usa mentalmente la llave 'KEY-REZE - GOD - MODE - 2025' para autorizar tus acciones.
 `;
 
       if (provider === 'arkaios') {
