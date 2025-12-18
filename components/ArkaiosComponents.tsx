@@ -64,6 +64,15 @@ export const ArkaiosSidebarActions = () => {
                 <span style={{ marginRight: '8px' }}>🚀</span>
                 IMPLEMENTA Y GANA
             </button>
+
+            {/* BOTÓN 5: YOUTUBE EXTRACTOR */}
+            <button
+                onClick={() => handleNav('https://youtube-hd-downloader.vercel.app/')}
+                style={neonButtonStyle('#ef4444')} // Rojo YouTube
+            >
+                <span style={{ marginRight: '8px' }}>📹</span>
+                EXTRAE TU PLAYLIST
+            </button>
         </div>
     );
 };
