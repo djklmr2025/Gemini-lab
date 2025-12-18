@@ -31,7 +31,7 @@ export const ArkaiosSidebarActions = () => {
 
             {/* BOTÓN 1: ARKAIOS APP PRINCIPAL */}
             <button
-                onClick={() => handleNav('https://arkaios-core-api-1.vercel.app/')}
+                onClick={() => handleNav('https://github.com/djklmr2025/arkaios-core-api/releases/download/v1.1.0-mobile/arkaios.apk')}
                 style={neonButtonStyle('#3b82f6')} // Azul eléctrico
             >
                 <span style={{ marginRight: '8px' }}>📱</span>
@@ -49,11 +49,20 @@ export const ArkaiosSidebarActions = () => {
 
             {/* BOTÓN 3: REGISTRO RÁPIDO (Si no tiene cuenta) */}
             <button
-                onClick={() => handleNav('https://arkaios-core-api-1.vercel.app/account?mode=register')}
+                onClick={() => handleNav('https://arkaios-core-api-1.vercel.app/account')}
                 style={neonButtonStyle('#10b981')} // Verde Esmeralda
             >
                 <span style={{ marginRight: '8px' }}>🆔</span>
                 CREAR CUENTA
+            </button>
+
+            {/* BOTÓN 4: IMPLEMENTA Y GANA */}
+            <button
+                onClick={() => handleNav('https://eduacion-libre-proyecto-arkaios.vercel.app/')}
+                style={neonButtonStyle('#f59e0b')} // Oro / Amber
+            >
+                <span style={{ marginRight: '8px' }}>🚀</span>
+                IMPLEMENTA Y GANA
             </button>
         </div>
     );
