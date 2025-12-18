@@ -31,7 +31,7 @@ export const ArkaiosSidebarActions = () => {
 
             {/* BOTÓN 1: ARKAIOS APP PRINCIPAL */}
             <button
-                onClick={() => handleNav('https://arkaios-app-domain.vercel.app/')}
+                onClick={() => handleNav('https://arkaios-core-api-1.vercel.app/')}
                 style={neonButtonStyle('#3b82f6')} // Azul eléctrico
             >
                 <span style={{ marginRight: '8px' }}>📱</span>
@@ -40,7 +40,7 @@ export const ArkaiosSidebarActions = () => {
 
             {/* BOTÓN 2: GACHAPON DIRECTO */}
             <button
-                onClick={() => handleNav('https://arkaios-app-domain.vercel.app/gachapon')}
+                onClick={() => handleNav('https://arkaios-core-api-1.vercel.app/gachapon')}
                 style={neonButtonStyle('#ec4899')} // Rosa Neón
             >
                 <span style={{ marginRight: '8px' }}>🎰</span>
@@ -49,7 +49,7 @@ export const ArkaiosSidebarActions = () => {
 
             {/* BOTÓN 3: REGISTRO RÁPIDO (Si no tiene cuenta) */}
             <button
-                onClick={() => handleNav('https://arkaios-app-domain.vercel.app/account?mode=register')}
+                onClick={() => handleNav('https://arkaios-core-api-1.vercel.app/account?mode=register')}
                 style={neonButtonStyle('#10b981')} // Verde Esmeralda
             >
                 <span style={{ marginRight: '8px' }}>🆔</span>
