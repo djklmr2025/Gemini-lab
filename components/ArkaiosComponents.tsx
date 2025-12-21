@@ -29,32 +29,29 @@ export const ArkaiosSidebarActions = () => {
                 Ecosistema Arkaios
             </div>
 
-            {/* BOTÓN 1: ARKAIOS APP PRINCIPAL */}
+            {/* BOTÓN: EL JUEGO DEL GACHAPON EN WLD */}
             <button
-                onClick={() => handleNav('https://github.com/djklmr2025/arkaios-core-api/releases/download/v1.1.0-mobile/arkaios.apk')}
-                style={neonButtonStyle('#3b82f6')} // Azul eléctrico
+                onClick={() => handleNav('https://world.org/es-la/ecosystem/app_20370726003816e5864dbb8485228960')}
+                style={neonButtonStyle('#ffffff')} // Blanco/Plata
             >
-                <span style={{ marginRight: '8px' }}>📱</span>
-                ARKAIOS APP
+                <div style={{
+                    width: '20px',
+                    height: '20px',
+                    borderRadius: '50%',
+                    background: 'white',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginRight: '10px',
+                    boxShadow: '0 0 10px rgba(255,255,255,0.8)',
+                    flexShrink: 0
+                }}>
+                    <span style={{ color: 'black', fontSize: '12px', fontWeight: 'bold' }}>W</span>
+                </div>
+                <span style={{ fontSize: '0.8rem', lineHeight: '1.2' }}>EL JUEGO DEL GACHAPON EN WLD</span>
             </button>
 
-            {/* BOTÓN 2: GACHAPON DIRECTO */}
-            <button
-                onClick={() => handleNav('https://arkaios-core-api-1.vercel.app/gachapon')}
-                style={neonButtonStyle('#ec4899')} // Rosa Neón
-            >
-                <span style={{ marginRight: '8px' }}>🎰</span>
-                GACHAPON
-            </button>
 
-            {/* BOTÓN 3: REGISTRO RÁPIDO (Si no tiene cuenta) */}
-            <button
-                onClick={() => handleNav('https://arkaios-core-api-1.vercel.app/account')}
-                style={neonButtonStyle('#10b981')} // Verde Esmeralda
-            >
-                <span style={{ marginRight: '8px' }}>🆔</span>
-                CREAR CUENTA
-            </button>
 
             {/* BOTÓN 4: IMPLEMENTA Y GANA */}
             <button
