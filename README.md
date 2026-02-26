@@ -2,7 +2,7 @@
 
 ![Reze Character](https://github.com/djklmr2025/arkaios-core-api/blob/main/public/assets/reze.png?raw=true)
 
-**Gemini Lab** Pruebalo en linea Ahora: "https://gemini-lab-ten.vercel.app/"
+**Gemini Lab** Pruebalo en linea Ahora: "(https://gemini-lab-nine.vercel.app/)"
 is an advanced AI chat interface featuring **Reze**, a character with a distinct personality, capable of voice interaction, visual perception, and advanced image editing capabilities powered by Google Gemini and Veo.
 
 ## ✨ Key Features
@@ -65,7 +65,7 @@ Open your browser and navigate to `http://localhost:5173` (or the port shown in 
 ## 📦 Deployment
 
 This project is configured for deployment on:
-- **Vercel**: [Live App](https://gemini-lab-ten.vercel.app/) (Single Page Application)
+- **Vercel**: [Live App](https://gemini-lab-nine.vercel.app/) (Single Page Application)
 
 ## 📝 License
 
