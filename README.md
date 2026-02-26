@@ -1,4 +1,4 @@
-# Gemini Lab - Reze AI Interface
+# Gemini Lab - ARKAIOS Interface
 
 ![Arkaios Avatar](https://github.com/djklmr2025/Gemini-lab/blob/main/public/arkaios_avatar.png?raw=true)
 
