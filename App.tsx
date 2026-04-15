@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Navigation } from './components/Navigation';
 import { Chat } from './components/Chat';
 import { ImageGen } from './components/ImageGen';
+import { EduAgent } from './components/EduAgent';
 import { AppMode } from './types';
 
 const App: React.FC = () => {
@@ -25,6 +26,9 @@ const App: React.FC = () => {
       <main className="flex-1 h-full overflow-hidden relative">
         {renderContent()}
       </main>
+
+      {/* ARKAIOS EduAgent - Flotante siempre visible */}
+      <EduAgent />
     </div>
   );
 };
