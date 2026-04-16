@@ -112,8 +112,15 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { request } = req.body;
+  const { request, mode, bridge_token } = req.body;
   if (!request) return res.status(400).json({ error: 'Campo "request" requerido' });
+
+  // Modo ai_generate: devuelve URL del generador IA en vez de buscar en Pexels
+  if (mode === 'ai_generate') {
+    const intent = await parseIntentWithGemini(request);
+    const genUrl = `https://eduacion-libre-proyecto-arkaios.vercel.app/generador-ia-imagenes.html?prompt=${encodeURIComponent(intent.topic)}&resolution=768x768&count=${intent.count||9}&autostart=1`;
+    return res.status(200).json({ ok:true, mode:'ai_generate', generatorUrl: genUrl, intent, bridge_note:'Abre generatorUrl para generar con Perchance AI' });
+  }
 
   try {
     // 1. Parsear intent con Gemini
