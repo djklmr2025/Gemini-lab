@@ -9,6 +9,34 @@ const GOOGLE_API_KEY = process.env.VITE_GOOGLE_API_KEY || process.env.GOOGLE_API
 
 const ARKAIOS_EDU_BASE = 'https://eduacion-libre-proyecto-arkaios.vercel.app';
 
+// ============================================================
+// ELEMIA — Memoria Infinita ARKAIOS
+// ============================================================
+const ELEMIA_BASE = process.env.ELEMIA_URL || 'https://elemia-v4-arkaios.onrender.com';
+const ELEMIA_TOKEN = process.env.ELEMIA_HTTP_TOKEN || 'ARKAIOS-SECURE-2025-ELEMIA-V4';
+
+async function elemiaRemember(content, tag = 'edu-agent') {
+  try {
+    await fetch(`${ELEMIA_BASE}/elemia/remember`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-elemia-token': ELEMIA_TOKEN },
+      body: JSON.stringify({ content, tag })
+    });
+  } catch(e) { /* ELEMIA no disponible — continuar sin memoria */ }
+}
+
+async function elemiaRecall(query) {
+  try {
+    const r = await fetch(`${ELEMIA_BASE}/elemia/recall`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-elemia-token': ELEMIA_TOKEN },
+      body: JSON.stringify({ query, limit: 3 })
+    });
+    const d = await r.json();
+    return d.ok ? d.results : [];
+  } catch(e) { return []; }
+}
+
 // Mapa de plantillas disponibles con descripción para que la IA elija
 const TEMPLATES = {
   'plantilla-imagenes-v2': {
@@ -125,6 +153,9 @@ export default async function handler(req, res) {
   try {
     // 1. Parsear intent con Gemini
     const intent = await parseIntentWithGemini(request);
+
+    // 1.5 Guardar petición en memoria ELEMIA
+    elemiaRemember(`[EDU-REQUEST] Petición: "${request}" → Tema: ${intent.topic}, Grid: ${intent.grid}, Template: ${intent.template}`, 'edu-request');
 
     // 2. Validar template
     const templateKey = TEMPLATES[intent.template] ? intent.template : 'plantilla-imagenes-v2';
