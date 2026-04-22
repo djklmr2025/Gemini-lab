@@ -10,6 +10,7 @@ interface EduMessage {
   role: 'user' | 'agent';
   text: string;
   templateUrl?: string;
+  templateLabel?: string;
   images?: { url: string; alt: string }[];
   grid?: string;
   topic?: string;
@@ -73,8 +74,9 @@ export const EduAgent: React.FC = () => {
       // Reemplazar mensaje de "pensando" con resultado
       const resultMsg: EduMessage = {
         role: 'agent',
-        text: `✅ **Plantilla lista!** Encontré ${data.imageCount} imágenes de "${data.topic}" en configuración ${data.grid}.\n\n💡 ${data.reasoning}`,
+        text: `✅ **Plantilla lista!** Encontré ${data.imageCount} imágenes de "${data.topic}" en configuración ${data.grid}.\n\n🧩 Plantilla: ${data.templateLabel || data.templateFile}\n\n💡 ${data.reasoning}`,
         templateUrl: data.templateUrl,
+        templateLabel: data.templateLabel,
         images: data.images?.slice(0, 4),
         grid: data.grid,
         topic: data.topic
