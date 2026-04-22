@@ -10,7 +10,9 @@ const ARKAIOS_EDU_BASE = process.env.ARKAIOS_EDU_BASE || 'https://eduacion-libre
 const ARKAIOS_EDU_TOOLS_URL = `${ARKAIOS_EDU_BASE}/api/arkaios-tools`;
 
 const BRIDGE_COMPATIBLE_FILES = new Set([
-  'plantilla-imagenes-v2.html'
+  'plantilla-imagenes-v2.html',
+  'plantilla-cuadros-imagenes-v2.html',
+  'generador-fotos-infantiles.html'
 ]);
 
 const FALLBACK_CATALOG = [
