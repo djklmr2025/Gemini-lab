@@ -1,17 +1,45 @@
 // ============================================================
 // ARKAIOS EDU-AGENT API
-// Recibe petición en lenguaje natural → parsea intent con Gemini
-// → busca imágenes en Pexels → devuelve config lista para la plantilla
+// Conecta Gemini Lab con el catalogo vivo del repo educativo.
 // ============================================================
 
 const PEXELS_API_KEY = process.env.PEXELS_API_KEY || '4vj6qTzLM9oc0gN7bdgr3vCO7jRDIBe0zJgknfq9geibx9hdQ16TVxpz';
 const GOOGLE_API_KEY = process.env.VITE_GOOGLE_API_KEY || process.env.GOOGLE_API_KEY;
 
-const ARKAIOS_EDU_BASE = 'https://eduacion-libre-proyecto-arkaios.vercel.app';
+const ARKAIOS_EDU_BASE = process.env.ARKAIOS_EDU_BASE || 'https://eduacion-libre-proyecto-arkaios.vercel.app';
+const ARKAIOS_EDU_TOOLS_URL = `${ARKAIOS_EDU_BASE}/api/arkaios-tools`;
 
-// ============================================================
-// ELEMIA — Memoria Infinita ARKAIOS
-// ============================================================
+const BRIDGE_COMPATIBLE_FILES = new Set([
+  'plantilla-imagenes-v2.html'
+]);
+
+const FALLBACK_CATALOG = [
+  {
+    id: 'plantilla_imagenes_v2',
+    name: 'Plantilla Imagenes v2',
+    file: 'plantilla-imagenes-v2.html',
+    description: 'Cuadricula flexible de imagenes compatible con carga automatica por URL.',
+    category: 'imagenes',
+    listed: true
+  },
+  {
+    id: 'plantilla_cuadros_imagenes_v2',
+    name: 'Cuadros Imagenes v2',
+    file: 'plantilla-cuadros-imagenes-v2.html',
+    description: 'Cuadros de imagenes para impresion.',
+    category: 'imagenes',
+    listed: true
+  },
+  {
+    id: 'generador_fotos_infantiles',
+    name: 'Generador Fotos Infantiles',
+    file: 'generador-fotos-infantiles.html',
+    description: 'Fotos infantiles 2.5x3.',
+    category: 'imagenes',
+    listed: true
+  }
+];
+
 const ELEMIA_BASE = process.env.ELEMIA_URL || 'https://elemia-v4-arkaios.onrender.com';
 const ELEMIA_TOKEN = process.env.ELEMIA_HTTP_TOKEN || 'ARKAIOS-SECURE-2025-ELEMIA-V4';
 
@@ -22,50 +50,52 @@ async function elemiaRemember(content, tag = 'edu-agent') {
       headers: { 'Content-Type': 'application/json', 'x-elemia-token': ELEMIA_TOKEN },
       body: JSON.stringify({ content, tag })
     });
-  } catch(e) { /* ELEMIA no disponible — continuar sin memoria */ }
-}
-
-async function elemiaRecall(query) {
-  try {
-    const r = await fetch(`${ELEMIA_BASE}/elemia/recall`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-elemia-token': ELEMIA_TOKEN },
-      body: JSON.stringify({ query, limit: 3 })
-    });
-    const d = await r.json();
-    return d.ok ? d.results : [];
-  } catch(e) { return []; }
-}
-
-// Mapa de plantillas disponibles con descripción para que la IA elija
-const TEMPLATES = {
-  'plantilla-imagenes-v2': {
-    file: 'plantilla-imagenes-v2.html',
-    desc: 'Cuadrícula de imágenes en hoja tamaño carta. Ideal para fichas, fotos escolares, recortes.',
-    grids: ['1x2','2x2','3x3','4x4','5x5','6x6','8x8']
-  },
-  'plantilla-cuadros-imagenes-v2': {
-    file: 'plantilla-cuadros-imagenes-v2.html',
-    desc: 'Cuadros de imágenes con bordes y etiquetas. Ideal para láminas con nombres.',
-    grids: ['2x2','3x3','4x4']
-  },
-  'generador-fotos-infantiles': {
-    file: 'generador-fotos-infantiles.html',
-    desc: 'Fotos infantiles 2.5x3cm en cuadrícula densa. Ideal para credenciales y perfiles.',
-    grids: ['auto']
-  },
-  'pixabay-descargador-lote': {
-    file: 'pixabay-descargador-lote.html',
-    desc: 'Descarga masiva de imágenes de Pixabay sobre un tema.',
-    grids: ['auto']
+  } catch (e) {
+    // Continuar sin memoria persistente.
   }
-};
+}
 
-async function parseIntentWithGemini(userRequest) {
+async function fetchEducationalCatalog() {
+  try {
+    const response = await fetch(ARKAIOS_EDU_TOOLS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tool: 'list_templates' })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Edu tools status ${response.status}`);
+    }
+
+    const data = await response.json();
+    if (!Array.isArray(data.templates) || data.templates.length === 0) {
+      throw new Error('Catalogo vacio');
+    }
+
+    return data.templates.map((item) => ({
+      id: item.id || item.file,
+      name: item.name || item.label || item.file,
+      file: item.file,
+      description: item.description || '',
+      category: item.category || item.section || 'general',
+      listed: item.listed !== false
+    }));
+  } catch (error) {
+    return FALLBACK_CATALOG;
+  }
+}
+
+function buildCatalogPrompt(catalog) {
+  return catalog.map((item) => {
+    const compatible = BRIDGE_COMPATIBLE_FILES.has(item.file) ? 'compatible' : 'solo_catalogo';
+    return `- id="${item.id}" | file="${item.file}" | name="${item.name}" | category="${item.category}" | mode="${compatible}" | desc="${item.description}"`;
+  }).join('\n');
+}
+
+async function parseIntentWithGemini(userRequest, catalog) {
   if (!GOOGLE_API_KEY) {
-    // Fallback sin IA: valores por defecto razonables
     return {
-      template: 'plantilla-imagenes-v2',
+      preferred_template_file: 'plantilla-imagenes-v2.html',
       grid: '3x3',
       topic: userRequest,
       count: 9,
@@ -74,25 +104,25 @@ async function parseIntentWithGemini(userRequest) {
     };
   }
 
-  const systemPrompt = `Eres el núcleo de ARKAIOS Educación. Analiza la petición del usuario y devuelve SOLO un JSON válido con esta estructura:
+  const systemPrompt = `Eres el nucleo de ARKAIOS Educacion. Analiza la peticion del usuario y devuelve SOLO un JSON valido con esta estructura:
 {
-  "template": "nombre-de-la-plantilla",
+  "preferred_template_file": "archivo.html",
   "grid": "NxM",
-  "topic": "tema en inglés para buscar imágenes",
-  "count": número_de_imágenes,
+  "topic": "tema en ingles para buscar imagenes",
+  "count": numero_de_imagenes,
   "lang": "es",
-  "reasoning": "breve explicación de por qué elegiste estos parámetros"
+  "reasoning": "explicacion breve"
 }
 
-PLANTILLAS DISPONIBLES:
-${Object.entries(TEMPLATES).map(([k,v]) => `- "${k}": ${v.desc} | Grids soportados: ${v.grids.join(', ')}`).join('\n')}
+CATALOGO VIVO DEL REPO EDUCATIVO:
+${buildCatalogPrompt(catalog)}
 
 REGLAS:
-- count debe ser igual a rows*cols del grid elegido (o múltiplo si el usuario pide más)
-- Si el usuario menciona un tamaño específico como "5cm" o "2.5x3" usa generador-fotos-infantiles
-- topic SIEMPRE en inglés para mejores resultados en Pexels
-- Si pide muchas imágenes (más de 25), usa 5x5 o 6x6
-- Responde SOLO JSON, sin markdown, sin explicación extra`;
+- Elige un archivo real del catalogo.
+- Si la tarea es una cuadricula de imagenes o no estas seguro, usa "plantilla-imagenes-v2.html".
+- count debe coincidir con el grid cuando sea posible.
+- topic SIEMPRE en ingles para mejores resultados en Pexels.
+- Responde SOLO JSON, sin markdown.`;
 
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GOOGLE_API_KEY}`,
@@ -100,7 +130,7 @@ REGLAS:
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: `${systemPrompt}\n\nPetición del usuario: "${userRequest}"` }] }],
+        contents: [{ parts: [{ text: `${systemPrompt}\n\nPeticion del usuario: "${userRequest}"` }] }],
         generationConfig: { temperature: 0.3, maxOutputTokens: 500 }
       })
     }
@@ -108,10 +138,38 @@ REGLAS:
 
   const data = await response.json();
   const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-
-  // Limpiar markdown si Gemini lo añadió
   const cleaned = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
   return JSON.parse(cleaned);
+}
+
+function resolveTemplate(intent, catalog) {
+  const preferredFile = String(intent.preferred_template_file || '').trim().toLowerCase();
+
+  const exact = catalog.find((item) => String(item.file).toLowerCase() === preferredFile);
+  const compatible = exact && BRIDGE_COMPATIBLE_FILES.has(exact.file) ? exact : null;
+
+  if (compatible) return compatible;
+
+  const firstCompatible = catalog.find((item) => BRIDGE_COMPATIBLE_FILES.has(item.file));
+  return firstCompatible || FALLBACK_CATALOG[0];
+}
+
+function normalizeGrid(rawGrid, rawCount) {
+  const safeGrid = String(rawGrid || '3x3').trim().toLowerCase();
+  const match = safeGrid.match(/^(\d+)x(\d+)$/);
+  if (!match) {
+    return { grid: '3x3', count: Math.max(Number(rawCount) || 9, 9) };
+  }
+
+  const rows = Number(match[1]);
+  const cols = Number(match[2]);
+  const gridCount = rows * cols;
+  const count = Number(rawCount) || gridCount;
+
+  return {
+    grid: `${rows}x${cols}`,
+    count: count < gridCount ? gridCount : count
+  };
 }
 
 async function fetchImagesFromPexels(topic, count) {
@@ -124,11 +182,11 @@ async function fetchImagesFromPexels(topic, count) {
   if (!response.ok) throw new Error(`Pexels error: ${response.status}`);
 
   const data = await response.json();
-  return data.photos.map(p => ({
-    url: p.src.large,
-    thumb: p.src.medium,
-    alt: p.alt || topic,
-    photographer: p.photographer
+  return data.photos.map((photo) => ({
+    url: photo.src.large,
+    thumb: photo.src.medium,
+    alt: photo.alt || topic,
+    photographer: photo.photographer
   }));
 }
 
@@ -140,49 +198,53 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { request, mode, bridge_token } = req.body;
+  const { request, mode } = req.body || {};
   if (!request) return res.status(400).json({ error: 'Campo "request" requerido' });
 
-  // Modo ai_generate: devuelve URL del generador IA en vez de buscar en Pexels
-  if (mode === 'ai_generate') {
-    const intent = await parseIntentWithGemini(request);
-    const genUrl = `https://eduacion-libre-proyecto-arkaios.vercel.app/generador-ia-imagenes.html?prompt=${encodeURIComponent(intent.topic)}&resolution=768x768&count=${intent.count||9}&autostart=1`;
-    return res.status(200).json({ ok:true, mode:'ai_generate', generatorUrl: genUrl, intent, bridge_note:'Abre generatorUrl para generar con Perchance AI' });
-  }
-
   try {
-    // 1. Parsear intent con Gemini
-    const intent = await parseIntentWithGemini(request);
+    const catalog = await fetchEducationalCatalog();
+    const intent = await parseIntentWithGemini(request, catalog);
+    const normalized = normalizeGrid(intent.grid, intent.count);
+    const selectedTemplate = resolveTemplate(intent, catalog);
 
-    // 1.5 Guardar petición en memoria ELEMIA
-    elemiaRemember(`[EDU-REQUEST] Petición: "${request}" → Tema: ${intent.topic}, Grid: ${intent.grid}, Template: ${intent.template}`, 'edu-request');
+    await elemiaRemember(
+      `[EDU-REQUEST] "${request}" -> topic=${intent.topic}, grid=${normalized.grid}, preferred=${intent.preferred_template_file}, selected=${selectedTemplate.file}`,
+      'edu-request'
+    );
 
-    // 2. Validar template
-    const templateKey = TEMPLATES[intent.template] ? intent.template : 'plantilla-imagenes-v2';
-    const templateInfo = TEMPLATES[templateKey];
+    if (mode === 'ai_generate') {
+      const generatorUrl = `${ARKAIOS_EDU_BASE}/generador-ia-imagenes.html?prompt=${encodeURIComponent(intent.topic)}&resolution=768x768&count=${normalized.count}&autostart=1`;
+      return res.status(200).json({
+        ok: true,
+        mode: 'ai_generate',
+        generatorUrl,
+        intent,
+        selectedTemplate
+      });
+    }
 
-    // 3. Buscar imágenes en Pexels
-    const images = await fetchImagesFromPexels(intent.topic, intent.count || 9);
+    const images = await fetchImagesFromPexels(intent.topic, normalized.count);
+    const imageUrls = images.map((item) => item.url).join('|');
+    const templateUrl = `${ARKAIOS_EDU_BASE}/${selectedTemplate.file}?agent=1&grid=${normalized.grid}&images=${encodeURIComponent(imageUrls)}&topic=${encodeURIComponent(intent.topic)}`;
 
-    // 4. Construir URL de la plantilla con params
-    const imageUrls = images.map(i => i.url).join('|');
-    const templateUrl = `${ARKAIOS_EDU_BASE}/${templateInfo.file}?agent=1&grid=${intent.grid}&images=${encodeURIComponent(imageUrls)}&topic=${encodeURIComponent(intent.topic)}`;
-
-    res.status(200).json({
+    return res.status(200).json({
       ok: true,
-      intent,
-      template: templateKey,
-      templateFile: templateInfo.file,
       templateUrl,
-      images,
+      templateFile: selectedTemplate.file,
+      templateLabel: selectedTemplate.name,
+      templateSource: BRIDGE_COMPATIBLE_FILES.has(selectedTemplate.file) ? 'bridge-compatible' : 'fallback-compatible',
       imageCount: images.length,
-      grid: intent.grid,
+      grid: normalized.grid,
       topic: intent.topic,
-      reasoning: intent.reasoning
+      reasoning: `${intent.reasoning} | Plantilla conectada desde catalogo vivo: ${selectedTemplate.name}`,
+      images,
+      catalogCount: catalog.length
     });
-
   } catch (error) {
     console.error('EduAgent error:', error);
-    res.status(500).json({ error: 'Error procesando la petición', details: error.message });
+    return res.status(500).json({
+      error: 'Error procesando la peticion',
+      details: error.message
+    });
   }
 }
