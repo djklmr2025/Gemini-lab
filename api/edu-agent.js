@@ -15,6 +15,10 @@ const BRIDGE_COMPATIBLE_FILES = new Set([
   'generador-fotos-infantiles.html'
 ]);
 
+const ORCHESTRATOR_COMPATIBLE_FILES = new Set([
+  'plantilla_escolar_carta_mx_autoajuste_y_areas_editables.html'
+]);
+
 const FALLBACK_CATALOG = [
   {
     id: 'plantilla_imagenes_v2',
@@ -148,11 +152,11 @@ function resolveTemplate(intent, catalog) {
   const preferredFile = String(intent.preferred_template_file || '').trim().toLowerCase();
 
   const exact = catalog.find((item) => String(item.file).toLowerCase() === preferredFile);
-  const compatible = exact && BRIDGE_COMPATIBLE_FILES.has(exact.file) ? exact : null;
+  const compatible = exact && (BRIDGE_COMPATIBLE_FILES.has(exact.file) || ORCHESTRATOR_COMPATIBLE_FILES.has(exact.file)) ? exact : null;
 
   if (compatible) return compatible;
 
-  const firstCompatible = catalog.find((item) => BRIDGE_COMPATIBLE_FILES.has(item.file));
+  const firstCompatible = catalog.find((item) => BRIDGE_COMPATIBLE_FILES.has(item.file) || ORCHESTRATOR_COMPATIBLE_FILES.has(item.file));
   return firstCompatible || FALLBACK_CATALOG[0];
 }
 
@@ -192,6 +196,122 @@ async function fetchImagesFromPexels(topic, count) {
   }));
 }
 
+function isDocumentRequest(request = '') {
+  const text = String(request).toLowerCase();
+  return [
+    'tarea',
+    'trabajo',
+    'investig',
+    'resumen',
+    'ensayo',
+    'exposi',
+    'informe',
+    'actividad',
+    'referencia',
+    'bibliograf'
+  ].some((token) => text.includes(token));
+}
+
+function buildCartaTemplateSchema() {
+  return {
+    id: 'carta-mx-inteligente',
+    title: 'Plantilla Escolar Carta MX',
+    modules: [
+      { id: 'titles.mainTitle', type: 'text', label: 'Titulo principal' },
+      { id: 'titles.subtitle', type: 'text', label: 'Subtitulo' },
+      { id: 'fields.field0', type: 'text', label: 'Nombre' },
+      { id: 'fields.field1', type: 'text', label: 'Materia' },
+      { id: 'fields.field2', type: 'text', label: 'Profesor(a)' },
+      { id: 'fields.field3', type: 'text', label: 'Fecha' },
+      { id: 'fields.fieldTopic', type: 'text', label: 'Tema' },
+      { id: 'blocks.0', type: 'text', label: 'Bloque de contenido 1' },
+      { id: 'blocks.1', type: 'text', label: 'Bloque de contenido 2' },
+      { id: 'blocks.2', type: 'text', label: 'Bloque de contenido 3' },
+      { id: 'references', type: 'text', label: 'Referencias' },
+      { id: 'layout', type: 'select', label: 'Imagenes por hoja' },
+      { id: 'images.0', type: 'image', label: 'Imagen 1' },
+      { id: 'images.1', type: 'image', label: 'Imagen 2' },
+      { id: 'images.2', type: 'image', label: 'Imagen 3' },
+      { id: 'images.3', type: 'image', label: 'Imagen 4' },
+      { id: 'images.4', type: 'image', label: 'Imagen 5' },
+      { id: 'images.5', type: 'image', label: 'Imagen 6' }
+    ]
+  };
+}
+
+function buildNestedWorkspace(fill = {}, images = {}) {
+  const workspace = {
+    fields: {},
+    titles: {},
+    blocks: ['', '', ''],
+    references: '',
+    layout: '3',
+    images: []
+  };
+
+  for (const [key, value] of Object.entries(fill)) {
+    if (!key || value == null) continue;
+    if (key.startsWith('fields.')) {
+      workspace.fields[key.slice('fields.'.length)] = String(value);
+      continue;
+    }
+    if (key.startsWith('titles.')) {
+      workspace.titles[key.slice('titles.'.length)] = String(value);
+      continue;
+    }
+    if (key.startsWith('blocks.')) {
+      const idx = Number(key.slice('blocks.'.length));
+      if (!Number.isNaN(idx) && idx >= 0) workspace.blocks[idx] = String(value);
+      continue;
+    }
+    if (key === 'references') {
+      workspace.references = String(value);
+      continue;
+    }
+    if (key === 'layout') {
+      workspace.layout = String(value);
+    }
+  }
+
+  for (const [key, value] of Object.entries(images)) {
+    if (!key.startsWith('images.') || typeof value !== 'string') continue;
+    const idx = Number(key.slice('images.'.length));
+    if (Number.isNaN(idx) || idx < 0) continue;
+    workspace.images[idx] = value;
+  }
+
+  workspace.fields.fieldTopic = workspace.fields.fieldTopic || workspace.titles.mainTitle || '';
+  workspace.titles.subtitle = workspace.titles.subtitle || 'Material generado por ARKAIOS Edu';
+  workspace.layout = ['3', '6', '9', '12'].includes(String(workspace.layout)) ? String(workspace.layout) : '3';
+
+  return workspace;
+}
+
+async function fetchOrchestratedPrefill(request, topic) {
+  const response = await fetch(`${ARKAIOS_EDU_BASE}/api/arkaios-orquestador`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      prompt: request,
+      template: buildCartaTemplateSchema(),
+      data: {
+        fields: { fieldTopic: topic },
+        titles: { mainTitle: topic }
+      }
+    })
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data?.error || 'No se pudo prellenar la plantilla educativa');
+  }
+
+  return {
+    reply: data.reply || 'Contenido prellenado por ARKAIOS.',
+    workspace: buildNestedWorkspace(data.fill || {}, data.images || {})
+  };
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
@@ -207,7 +327,12 @@ export default async function handler(req, res) {
     const catalog = await fetchEducationalCatalog();
     const intent = await parseIntentWithGemini(request, catalog);
     const normalized = normalizeGrid(intent.grid, intent.count);
-    const selectedTemplate = resolveTemplate(intent, catalog);
+    let selectedTemplate = resolveTemplate(intent, catalog);
+
+    if (isDocumentRequest(request)) {
+      const cartaTemplate = catalog.find((item) => ORCHESTRATOR_COMPATIBLE_FILES.has(item.file));
+      if (cartaTemplate) selectedTemplate = cartaTemplate;
+    }
 
     await elemiaRemember(
       `[EDU-REQUEST] "${request}" -> topic=${intent.topic}, grid=${normalized.grid}, preferred=${intent.preferred_template_file}, selected=${selectedTemplate.file}`,
@@ -222,6 +347,26 @@ export default async function handler(req, res) {
         generatorUrl,
         intent,
         selectedTemplate
+      });
+    }
+
+    if (ORCHESTRATOR_COMPATIBLE_FILES.has(selectedTemplate.file)) {
+      const orchestrated = await fetchOrchestratedPrefill(request, intent.topic);
+      const payload = encodeURIComponent(Buffer.from(JSON.stringify(orchestrated.workspace), 'utf8').toString('base64'));
+      const templateUrl = `${ARKAIOS_EDU_BASE}/${selectedTemplate.file}?agent=1&topic=${encodeURIComponent(intent.topic)}&payload=${payload}`;
+
+      return res.status(200).json({
+        ok: true,
+        mode: 'prefill',
+        templateUrl,
+        templateFile: selectedTemplate.file,
+        templateLabel: selectedTemplate.name,
+        templateSource: 'orchestrator-compatible',
+        grid: normalized.grid,
+        topic: intent.topic,
+        reasoning: `${intent.reasoning} | Plantilla prellenada con ARKAIOS Orquestador: ${selectedTemplate.name}`,
+        workspacePreview: orchestrated.workspace,
+        catalogCount: catalog.length
       });
     }
 
