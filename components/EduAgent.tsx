@@ -11,6 +11,7 @@ interface EduMessage {
   text: string;
   templateUrl?: string;
   templateLabel?: string;
+  mode?: string;
   images?: { url: string; alt: string }[];
   grid?: string;
   topic?: string;
@@ -74,9 +75,12 @@ export const EduAgent: React.FC = () => {
       // Reemplazar mensaje de "pensando" con resultado
       const resultMsg: EduMessage = {
         role: 'agent',
-        text: `✅ **Plantilla lista!** Encontré ${data.imageCount} imágenes de "${data.topic}" en configuración ${data.grid}.\n\n🧩 Plantilla: ${data.templateLabel || data.templateFile}\n\n💡 ${data.reasoning}`,
+        text: data.mode === 'prefill'
+          ? `✅ **Plantilla prellenada!** Preparé material editable para "${data.topic}".\n\n🧩 Plantilla: ${data.templateLabel || data.templateFile}\n\n💡 ${data.reasoning}`
+          : `✅ **Plantilla lista!** Encontré ${data.imageCount} imágenes de "${data.topic}" en configuración ${data.grid}.\n\n🧩 Plantilla: ${data.templateLabel || data.templateFile}\n\n💡 ${data.reasoning}`,
         templateUrl: data.templateUrl,
         templateLabel: data.templateLabel,
+        mode: data.mode,
         images: data.images?.slice(0, 4),
         grid: data.grid,
         topic: data.topic
@@ -186,7 +190,7 @@ export const EduAgent: React.FC = () => {
                         color: 'white'
                       }}
                     >
-                      📄 Abrir Plantilla → Auto PDF
+                      {msg.mode === 'prefill' ? '📝 Abrir Plantilla Prellenada' : '📄 Abrir Plantilla → Auto PDF'}
                     </button>
                   )}
                 </div>
