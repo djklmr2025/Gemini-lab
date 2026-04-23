@@ -13,7 +13,10 @@ const ARKAIOS_EDU_PDF_URL = `${ARKAIOS_EDU_BASE}/api/export-pdf`;
 const BRIDGE_COMPATIBLE_FILES = new Set([
   'plantilla-imagenes-v2.html',
   'plantilla-cuadros-imagenes-v2.html',
-  'generador-fotos-infantiles.html'
+  'generador-fotos-infantiles.html',
+  'brecha-digital.html',
+  'cultura-de-paz.html',
+  'buscador-imagenes-educativo.html'
 ]);
 
 const ORCHESTRATOR_COMPATIBLE_FILES = new Set([
@@ -58,6 +61,7 @@ async function elemiaRemember(content, tag = 'edu-agent') {
       body: JSON.stringify({ content, tag })
     });
   } catch (e) {
+    // Continuar sin memoria persistente.
   }
 }
 
@@ -150,9 +154,12 @@ REGLAS:
 
 function resolveTemplate(intent, catalog) {
   const preferredFile = String(intent.preferred_template_file || '').trim().toLowerCase();
+
   const exact = catalog.find((item) => String(item.file).toLowerCase() === preferredFile);
   const compatible = exact && (BRIDGE_COMPATIBLE_FILES.has(exact.file) || ORCHESTRATOR_COMPATIBLE_FILES.has(exact.file)) ? exact : null;
+
   if (compatible) return compatible;
+
   const firstCompatible = catalog.find((item) => BRIDGE_COMPATIBLE_FILES.has(item.file) || ORCHESTRATOR_COMPATIBLE_FILES.has(item.file));
   return firstCompatible || FALLBACK_CATALOG[0];
 }
@@ -168,7 +175,11 @@ function normalizeGrid(rawGrid, rawCount) {
   const cols = Number(match[2]);
   const gridCount = rows * cols;
   const count = Number(rawCount) || gridCount;
-  return { grid: `${rows}x${cols}`, count: count < gridCount ? gridCount : count };
+
+  return {
+    grid: `${rows}x${cols}`,
+    count: count < gridCount ? gridCount : count
+  };
 }
 
 async function fetchImagesFromPexels(topic, count) {
@@ -177,7 +188,9 @@ async function fetchImagesFromPexels(topic, count) {
     `https://api.pexels.com/v1/search?query=${encodeURIComponent(topic)}&per_page=${perPage}&orientation=square`,
     { headers: { Authorization: PEXELS_API_KEY } }
   );
+
   if (!response.ok) throw new Error(`Pexels error: ${response.status}`);
+
   const data = await response.json();
   return data.photos.map((photo) => ({
     url: photo.src.large,
@@ -189,7 +202,18 @@ async function fetchImagesFromPexels(topic, count) {
 
 function isDocumentRequest(request = '') {
   const text = String(request).toLowerCase();
-  return ['tarea','trabajo','investig','resumen','ensayo','exposi','informe','actividad','referencia','bibliograf'].some((token) => text.includes(token));
+  return [
+    'tarea',
+    'trabajo',
+    'investig',
+    'resumen',
+    'ensayo',
+    'exposi',
+    'informe',
+    'actividad',
+    'referencia',
+    'bibliograf'
+  ].some((token) => text.includes(token));
 }
 
 function buildCartaTemplateSchema() {
@@ -220,24 +244,50 @@ function buildCartaTemplateSchema() {
 }
 
 function buildNestedWorkspace(fill = {}, images = {}) {
-  const workspace = { fields: {}, titles: {}, blocks: ['', '', ''], references: '', layout: '3', images: [] };
+  const workspace = {
+    fields: {},
+    titles: {},
+    blocks: ['', '', ''],
+    references: '',
+    layout: '3',
+    images: []
+  };
+
   for (const [key, value] of Object.entries(fill)) {
     if (!key || value == null) continue;
-    if (key.startsWith('fields.')) { workspace.fields[key.slice('fields.'.length)] = String(value); continue; }
-    if (key.startsWith('titles.')) { workspace.titles[key.slice('titles.'.length)] = String(value); continue; }
-    if (key.startsWith('blocks.')) { const idx = Number(key.slice('blocks.'.length)); if (!Number.isNaN(idx) && idx >= 0) workspace.blocks[idx] = String(value); continue; }
-    if (key === 'references') { workspace.references = String(value); continue; }
-    if (key === 'layout') { workspace.layout = String(value); }
+    if (key.startsWith('fields.')) {
+      workspace.fields[key.slice('fields.'.length)] = String(value);
+      continue;
+    }
+    if (key.startsWith('titles.')) {
+      workspace.titles[key.slice('titles.'.length)] = String(value);
+      continue;
+    }
+    if (key.startsWith('blocks.')) {
+      const idx = Number(key.slice('blocks.'.length));
+      if (!Number.isNaN(idx) && idx >= 0) workspace.blocks[idx] = String(value);
+      continue;
+    }
+    if (key === 'references') {
+      workspace.references = String(value);
+      continue;
+    }
+    if (key === 'layout') {
+      workspace.layout = String(value);
+    }
   }
+
   for (const [key, value] of Object.entries(images)) {
     if (!key.startsWith('images.') || typeof value !== 'string') continue;
     const idx = Number(key.slice('images.'.length));
     if (Number.isNaN(idx) || idx < 0) continue;
     workspace.images[idx] = value;
   }
+
   workspace.fields.fieldTopic = workspace.fields.fieldTopic || workspace.titles.mainTitle || '';
   workspace.titles.subtitle = workspace.titles.subtitle || 'Material generado por ARKAIOS Edu';
   workspace.layout = ['3', '6', '9', '12'].includes(String(workspace.layout)) ? String(workspace.layout) : '3';
+
   return workspace;
 }
 
@@ -248,13 +298,22 @@ async function fetchOrchestratedPrefill(request, topic) {
     body: JSON.stringify({
       prompt: request,
       template: buildCartaTemplateSchema(),
-      data: { fields: { fieldTopic: topic }, titles: { mainTitle: topic } }
+      data: {
+        fields: { fieldTopic: topic },
+        titles: { mainTitle: topic }
+      }
     })
   });
 
   const data = await response.json();
-  if (!response.ok) throw new Error(data?.error || 'No se pudo prellenar la plantilla educativa');
-  return { reply: data.reply || 'Contenido prellenado por ARKAIOS.', workspace: buildNestedWorkspace(data.fill || {}, data.images || {}) };
+  if (!response.ok) {
+    throw new Error(data?.error || 'No se pudo prellenar la plantilla educativa');
+  }
+
+  return {
+    reply: data.reply || 'Contenido prellenado por ARKAIOS.',
+    workspace: buildNestedWorkspace(data.fill || {}, data.images || {})
+  };
 }
 
 export default async function handler(req, res) {
@@ -279,11 +338,20 @@ export default async function handler(req, res) {
       if (cartaTemplate) selectedTemplate = cartaTemplate;
     }
 
-    await elemiaRemember(`[EDU-REQUEST] "${request}" -> topic=${intent.topic}, grid=${normalized.grid}, preferred=${intent.preferred_template_file}, selected=${selectedTemplate.file}`, 'edu-request');
+    await elemiaRemember(
+      `[EDU-REQUEST] "${request}" -> topic=${intent.topic}, grid=${normalized.grid}, preferred=${intent.preferred_template_file}, selected=${selectedTemplate.file}`,
+      'edu-request'
+    );
 
     if (mode === 'ai_generate') {
       const generatorUrl = `${ARKAIOS_EDU_BASE}/generador-ia-imagenes.html?prompt=${encodeURIComponent(intent.topic)}&resolution=768x768&count=${normalized.count}&autostart=1`;
-      return res.status(200).json({ ok: true, mode: 'ai_generate', generatorUrl, intent, selectedTemplate });
+      return res.status(200).json({
+        ok: true,
+        mode: 'ai_generate',
+        generatorUrl,
+        intent,
+        selectedTemplate
+      });
     }
 
     if (ORCHESTRATOR_COMPATIBLE_FILES.has(selectedTemplate.file)) {
@@ -291,7 +359,21 @@ export default async function handler(req, res) {
       const payload = encodeURIComponent(Buffer.from(JSON.stringify(orchestrated.workspace), 'utf8').toString('base64'));
       const templateUrl = `${ARKAIOS_EDU_BASE}/${selectedTemplate.file}?agent=1&topic=${encodeURIComponent(intent.topic)}&payload=${payload}`;
       const pdfUrl = `${ARKAIOS_EDU_PDF_URL}?url=${encodeURIComponent(templateUrl)}`;
-      return res.status(200).json({ ok: true, mode: 'prefill', templateUrl, pdfUrl, templateFile: selectedTemplate.file, templateLabel: selectedTemplate.name, templateSource: 'orchestrator-compatible', grid: normalized.grid, topic: intent.topic, reasoning: `${intent.reasoning} | Plantilla prellenada con ARKAIOS Orquestador: ${selectedTemplate.name}`, workspacePreview: orchestrated.workspace, catalogCount: catalog.length });
+
+      return res.status(200).json({
+        ok: true,
+        mode: 'prefill',
+        templateUrl,
+        pdfUrl,
+        templateFile: selectedTemplate.file,
+        templateLabel: selectedTemplate.name,
+        templateSource: 'orchestrator-compatible',
+        grid: normalized.grid,
+        topic: intent.topic,
+        reasoning: `${intent.reasoning} | Plantilla prellenada con ARKAIOS Orquestador: ${selectedTemplate.name}`,
+        workspacePreview: orchestrated.workspace,
+        catalogCount: catalog.length
+      });
     }
 
     const images = await fetchImagesFromPexels(intent.topic, normalized.count);
@@ -299,9 +381,25 @@ export default async function handler(req, res) {
     const templateUrl = `${ARKAIOS_EDU_BASE}/${selectedTemplate.file}?agent=1&grid=${normalized.grid}&images=${encodeURIComponent(imageUrls)}&topic=${encodeURIComponent(intent.topic)}`;
     const pdfUrl = `${ARKAIOS_EDU_PDF_URL}?url=${encodeURIComponent(templateUrl)}`;
 
-    return res.status(200).json({ ok: true, templateUrl, pdfUrl, templateFile: selectedTemplate.file, templateLabel: selectedTemplate.name, templateSource: BRIDGE_COMPATIBLE_FILES.has(selectedTemplate.file) ? 'bridge-compatible' : 'fallback-compatible', imageCount: images.length, grid: normalized.grid, topic: intent.topic, reasoning: `${intent.reasoning} | Plantilla conectada desde catalogo vivo: ${selectedTemplate.name}`, images, catalogCount: catalog.length });
+    return res.status(200).json({
+      ok: true,
+      templateUrl,
+      pdfUrl,
+      templateFile: selectedTemplate.file,
+      templateLabel: selectedTemplate.name,
+      templateSource: BRIDGE_COMPATIBLE_FILES.has(selectedTemplate.file) ? 'bridge-compatible' : 'fallback-compatible',
+      imageCount: images.length,
+      grid: normalized.grid,
+      topic: intent.topic,
+      reasoning: `${intent.reasoning} | Plantilla conectada desde catalogo vivo: ${selectedTemplate.name}`,
+      images,
+      catalogCount: catalog.length
+    });
   } catch (error) {
     console.error('EduAgent error:', error);
-    return res.status(500).json({ error: 'Error procesando la peticion', details: error.message });
+    return res.status(500).json({
+      error: 'Error procesando la peticion',
+      details: error.message
+    });
   }
 }
