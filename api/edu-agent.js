@@ -102,16 +102,108 @@ function buildCatalogPrompt(catalog) {
   }).join('\n');
 }
 
+function normalizeText(value = '') {
+  return String(value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
+function translateTopicFallback(rawTopic = '') {
+  let topic = normalizeText(rawTopic);
+
+  const phraseMap = [
+    ['figuras geometricas', 'geometric shapes'],
+    ['animales del oceano', 'ocean animals'],
+    ['sistema solar', 'solar system'],
+    ['frutas tropicales', 'tropical fruits'],
+    ['vida marina', 'marine life'],
+    ['animales marinos', 'sea animals']
+  ];
+
+  for (const [needle, replacement] of phraseMap) {
+    if (topic.includes(needle)) topic = topic.replace(needle, replacement);
+  }
+
+  const wordMap = {
+    dinosaurios: 'dinosaurs',
+    dinosaurio: 'dinosaur',
+    volcanes: 'volcanoes',
+    volcan: 'volcano',
+    planetas: 'planets',
+    planeta: 'planet',
+    animales: 'animals',
+    animal: 'animal',
+    oceano: 'ocean',
+    frutas: 'fruits',
+    fruta: 'fruit',
+    tropicales: 'tropical',
+    tropical: 'tropical',
+    geometricas: 'geometric',
+    geometrica: 'geometric',
+    figuras: 'shapes',
+    figura: 'shape',
+    primaria: 'elementary',
+    preescolar: 'preschool',
+    ninos: 'kids',
+    ninas: 'kids',
+    infantil: 'kids',
+    escolares: 'school',
+    escolar: 'school'
+  };
+
+  return topic
+    .split(/[^a-zA-Z]+/)
+    .filter(Boolean)
+    .map((token) => wordMap[token] || token)
+    .join(' ')
+    .trim();
+}
+
+function parseIntentFallback(userRequest = '') {
+  const normalizedRequest = normalizeText(userRequest);
+  const gridMatch = normalizedRequest.match(/(\d+)\s*x\s*(\d+)/);
+  const explicitCountMatch = normalizedRequest.match(/\b(\d+)\b/);
+  
+  let rows = gridMatch ? Number(gridMatch[1]) : 0;
+  let cols = gridMatch ? Number(gridMatch[2]) : 0;
+  let count = rows && cols ? rows * cols : (explicitCountMatch ? Number(explicitCountMatch[1]) : 9);
+
+  // Si no hay grid explícito (como "4x4"), pero hay un número de fotos (como "12 fotos"), calcular grid
+  let grid = '3x3';
+  if (gridMatch) {
+    grid = `${rows}x${cols}`;
+  } else if (count > 0) {
+    const side = Math.ceil(Math.sqrt(count));
+    const sideOther = Math.ceil(count / side);
+    // Preferir formato horizontal si no es cuadrado perfecto
+    grid = side >= sideOther ? `${sideOther}x${side}` : `${side}x${sideOther}`;
+  }
+
+  let cleanedTopic = normalizedRequest
+    .replace(/\b\d+\s*x\s*\d+\b/g, ' ')
+    .replace(/\b\d+\b/g, ' ')
+    .replace(/\b(necesito|quiero|dame|crea|crear|una|un|unas|unos|con|para|de|del|la|las|el|los|en|cuadricula|grid|imagenes|imagen|foto|fotos|plantilla|grado|anos|ano|materia)\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!cleanedTopic) cleanedTopic = normalizedRequest;
+  const translatedTopic = translateTopicFallback(cleanedTopic) || 'educational flashcards';
+
+  return {
+    preferred_template_file: 'plantilla-imagenes-v2.html',
+    grid: grid,
+    topic: translatedTopic,
+    count: count,
+    lang: 'es',
+    reasoning: 'Inferencia dinámica (Modo sin Gemini API)'
+  };
+}
+
+
 async function parseIntentWithGemini(userRequest, catalog) {
   if (!GOOGLE_API_KEY) {
-    return {
-      preferred_template_file: 'plantilla-imagenes-v2.html',
-      grid: '3x3',
-      topic: userRequest,
-      count: 9,
-      lang: 'es',
-      reasoning: 'Fallback sin API key de Gemini'
-    };
+    return parseIntentFallback(userRequest);
   }
 
   const systemPrompt = `Eres el nucleo de ARKAIOS Educacion. Analiza la peticion del usuario y devuelve SOLO un JSON valido con esta estructura:
