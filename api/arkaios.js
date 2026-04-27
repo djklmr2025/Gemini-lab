@@ -27,13 +27,13 @@ export default async function handler(req, res) {
         process.env.VITE_AIDA_AUTH_TOKEN
     );
 
-    // Fallback URL if env var is missing (though it should be set in Vercel)
     const rawBaseUrl = sanitizeEnv(
         process.env.ARKAIOS_BASE_URL ||
         process.env.VITE_ARKAIOS_BASE_URL ||
         'https://arkaios-service-proxy.onrender.com'
     );
     const baseUrl = rawBaseUrl.replace(/\/+$/, '');
+    const gatewayUrl = sanitizeEnv(process.env.AIDA_GATEWAY_URL || `${baseUrl}/aida/gateway`);
 
     if (!apiKey) {
         return res.status(500).json({
@@ -43,22 +43,66 @@ export default async function handler(req, res) {
     }
 
     try {
-        const response = await fetch(`${baseUrl}/v1/chat/completions`, {
+        const messages = Array.isArray(req.body?.messages) ? req.body.messages : [];
+        const lastUserMessage = [...messages].reverse().find((msg) => msg?.role === 'user');
+        const userText =
+            typeof lastUserMessage?.content === 'string'
+                ? lastUserMessage.content
+                : typeof req.body?.message === 'string'
+                  ? req.body.message
+                  : typeof req.body?.prompt === 'string'
+                    ? req.body.prompt
+                    : '';
+
+        const upstreamPayload = {
+            agent_id: req.body?.agent_id || 'puter',
+            action: req.body?.action || 'plan',
+            params: {
+                objective: userText,
+                messages,
+            },
+        };
+
+        const response = await fetch(gatewayUrl, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${apiKey}`,
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(req.body),
+            body: JSON.stringify(upstreamPayload),
         });
-
-        const data = await response.json();
+        const responseText = await response.text();
+        let data;
+        try {
+            data = JSON.parse(responseText);
+        } catch {
+            return res.status(502).json({
+                error: 'Invalid upstream response',
+                details: responseText.slice(0, 500),
+            });
+        }
 
         if (!response.ok) {
             return res.status(response.status).json(data);
         }
 
-        res.status(200).json(data);
+        const content =
+            data?.result?.note ||
+            data?.result?.text ||
+            data?.message ||
+            data?.reply ||
+            'Sin respuesta.';
+
+        res.status(200).json({
+            choices: [
+                {
+                    message: {
+                        content,
+                    },
+                },
+            ],
+            raw: data,
+        });
     } catch (error) {
         console.error('Arkaios Proxy error:', error);
         res.status(500).json({ error: 'Failed to fetch from Arkaios', details: error.message });
