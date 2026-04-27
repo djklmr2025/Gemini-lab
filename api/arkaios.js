@@ -17,12 +17,29 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const apiKey = process.env.VITE_PROXY_API_KEY || process.env.PROXY_API_KEY;
+    const sanitizeEnv = (value) =>
+        typeof value === 'string' ? value.trim().replace(/^['"]|['"]$/g, '') : '';
+
+    const apiKey = sanitizeEnv(
+        process.env.PROXY_API_KEY ||
+        process.env.VITE_PROXY_API_KEY ||
+        process.env.AIDA_AUTH_TOKEN ||
+        process.env.VITE_AIDA_AUTH_TOKEN
+    );
+
     // Fallback URL if env var is missing (though it should be set in Vercel)
-    const baseUrl = process.env.VITE_ARKAIOS_BASE_URL || process.env.ARKAIOS_BASE_URL || 'https://arkaios-service-proxy.onrender.com';
+    const rawBaseUrl = sanitizeEnv(
+        process.env.ARKAIOS_BASE_URL ||
+        process.env.VITE_ARKAIOS_BASE_URL ||
+        'https://arkaios-service-proxy.onrender.com'
+    );
+    const baseUrl = rawBaseUrl.replace(/\/+$/, '');
 
     if (!apiKey) {
-        return res.status(500).json({ error: 'Server configuration error: Missing API Key' });
+        return res.status(500).json({
+            error: 'Server configuration error: Missing API Key',
+            required: ['PROXY_API_KEY', 'AIDA_AUTH_TOKEN'],
+        });
     }
 
     try {
