@@ -86,12 +86,35 @@ export default async function handler(req, res) {
             return res.status(response.status).json(data);
         }
 
-        const content =
-            data?.result?.note ||
-            data?.result?.text ||
-            data?.message ||
-            data?.reply ||
-            'Sin respuesta.';
+        const buildGatewaySummary = (payload) => {
+            const action = payload?.result?.action || upstreamPayload.action;
+            const agent = payload?.result?.agent_id || upstreamPayload.agent_id;
+            const mode = payload?.mode || 'unknown';
+            const note = payload?.result?.note || payload?.message || '';
+            const objective =
+                payload?.result?.params?.objective ||
+                upstreamPayload?.params?.objective ||
+                userText;
+
+            if (action === 'read' && Array.isArray(payload?.result?.items)) {
+                const topItems = payload.result.items.slice(0, 5).map((item) => item.name).join(', ');
+                return `ARKAIOS consultó el recurso en modo ${mode}. Accion: read. Elementos detectados: ${payload.result.items.length}. Primeros elementos: ${topItems}.`;
+            }
+
+            if (note === 'Acción segura procesada') {
+                return `ARKAIOS recibió tu solicitud en modo ${mode}. Agente: ${agent}. Accion: ${action}. Objetivo: ${objective}. El gateway confirmó la operación, pero este endpoint abierto no devolvió una respuesta conversacional final.`;
+            }
+
+            return (
+                payload?.result?.note ||
+                payload?.result?.text ||
+                payload?.message ||
+                payload?.reply ||
+                'Sin respuesta.'
+            );
+        };
+
+        const content = buildGatewaySummary(data);
 
         res.status(200).json({
             choices: [
