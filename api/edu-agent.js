@@ -55,22 +55,26 @@ const N8N_API_KEY = process.env.N8N_API_KEY || 'ARKAIOS-N8N-SECURE-KEY-2026';
 
 async function elemiaRemember(content, tag = 'edu-agent') {
   try {
-    // Enviar el log centralizado al webhook de n8n
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 1500); // 1.5s max
+
     await fetch(N8N_WEBHOOK_URL, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${N8N_API_KEY}` // Header Auth para n8n
+        'Authorization': `Bearer ${N8N_API_KEY}` 
       },
       body: JSON.stringify({ 
         EVENT_TYPE: 'EDU_AGENT_REQUEST',
         SOURCE_IP: 'gemini-lab',
         NOTES: `[${tag}] ${content}`
-      })
+      }),
+      signal: controller.signal
     });
+    
+    clearTimeout(timeoutId);
   } catch (e) {
-    // Continuar sin fallar la peticion principal
-    console.error("Error enviando log a n8n:", e.message);
+    console.error("Webhook n8n timeout/error:", e.message);
   }
 }
 
@@ -261,7 +265,7 @@ REGLAS:
     const jsonMatch = rawText.match(/\{[\s\S]*\}/);
     const cleaned = jsonMatch ? jsonMatch[0] : rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     
-    return JSON.parse(cleaned);
+    return JSON.parse(cleaned) || parseIntentFallback(userRequest);
   } catch (error) {
     console.warn("Fallo el parseo de Gemini, usando fallback:", error.message);
     return parseIntentFallback(userRequest);
