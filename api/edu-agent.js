@@ -212,6 +212,7 @@ async function parseIntentWithGemini(userRequest, catalog) {
   "topic": "tema en ingles para buscar imagenes",
   "count": numero_de_imagenes,
   "lang": "es",
+  "source": "ai", 
   "reasoning": "explicacion breve"
 }
 
@@ -222,8 +223,9 @@ REGLAS:
 - Elige un archivo real del catalogo.
 - Si la tarea es una cuadricula de imagenes o no estas seguro, usa "plantilla-imagenes-v2.html".
 - count debe coincidir con el grid cuando sea posible.
-- topic SIEMPRE en ingles para mejores resultados en Pexels.
-- Responde SOLO JSON, sin markdown.`;
+- topic SIEMPRE en ingles para mejores resultados en Pexels/IA.
+- Usa source: "ai" SI el usuario pide explícitamente "generar", "crear con IA", "dibujar", "ilustrar". De lo contrario usa "pexels".
+- Responde SOLO JSON, sin markdown.\`;
 
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GOOGLE_API_KEY}`,
@@ -443,7 +445,22 @@ export default async function handler(req, res) {
       });
     }
 
-    if (ORCHESTRATOR_COMPATIBLE_FILES.has(selectedTemplate.file)) {
+    if (intent.source === 'ai') {
+      return res.status(200).json({
+        ok: true,
+        mode: 'client_ai_generate',
+        templateFile: selectedTemplate.file,
+        templateLabel: selectedTemplate.name,
+        grid: normalized.grid,
+        topic: intent.topic,
+        count: normalized.count,
+        reasoning: `${intent.reasoning} | Generación de imágenes con IA en vivo`,
+        baseUrl: ARKAIOS_EDU_BASE,
+        pdfUrl: `${ARKAIOS_EDU_PDF_URL}?url=` // We'll append URL later in client
+      });
+    }
+
+    const isOrchestrator = ORCHESTRATOR_COMPATIBLE_FILES.has(selectedTemplate.file);
       const orchestrated = await fetchOrchestratedPrefill(request, intent.topic);
       const payload = encodeURIComponent(Buffer.from(JSON.stringify(orchestrated.workspace), 'utf8').toString('base64'));
       const templateUrl = `${ARKAIOS_EDU_BASE}/${selectedTemplate.file}?agent=1&topic=${encodeURIComponent(intent.topic)}&payload=${payload}`;
