@@ -22,6 +22,23 @@ export const ImageGen: React.FC = () => {
 
   const clearImage = () => setSelectedImage(null);
 
+  const urlToDataUri = async (url: string): Promise<string> => {
+    if (url.startsWith('data:')) return url;
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (e) {
+      console.warn("Could not convert to data URI", e);
+      return url; // fallback to original
+    }
+  };
+
   const handleGenerate = async () => {
     if (!prompt.trim() || isGenerating) return;
 
@@ -59,7 +76,8 @@ export const ImageGen: React.FC = () => {
         const data = await res.json();
         const imageUrl = data.data?.[0]?.url;
         if (imageUrl) {
-          setGeneratedImage(imageUrl);
+          const dataUri = await urlToDataUri(imageUrl);
+          setGeneratedImage(dataUri);
         } else {
           throw new Error("No image returned from Arkaios.");
         }
@@ -104,17 +122,23 @@ export const ImageGen: React.FC = () => {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error generating with A1.art');
         const imageUrl = data.image_url || data.output_url || data.image || data[0];
-        if (imageUrl) setGeneratedImage(imageUrl);
-        else throw new Error('No image URL in response.');
+        if (imageUrl) {
+          const dataUri = await urlToDataUri(imageUrl);
+          setGeneratedImage(dataUri);
+        } else {
+          throw new Error('No image URL in response.');
+        }
 
       } else {
         // Puter Generation
         if (window.puter && window.puter.ai && window.puter.ai.txt2img) {
           const imageElement = await window.puter.ai.txt2img(prompt);
           if (imageElement && imageElement.src) {
-            setGeneratedImage(imageElement.src);
+            const dataUri = await urlToDataUri(imageElement.src);
+            setGeneratedImage(dataUri);
           } else if (imageElement instanceof HTMLImageElement) {
-            setGeneratedImage(imageElement.src);
+            const dataUri = await urlToDataUri(imageElement.src);
+            setGeneratedImage(dataUri);
           } else {
             throw new Error("Puter did not return a valid image source.");
           }
