@@ -251,7 +251,7 @@ export const EduAgent: React.FC = () => {
       {/* ====== BOTÓN FLOTANTE ====== */}
       <button
         onClick={() => setIsOpen(prev => !prev)}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-2xl flex items-center justify-center text-2xl transition-all duration-300 hover:scale-110"
+        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-2xl flex items-center justify-center text-2xl transition-all duration-300 hover:scale-110 print:hidden"
         style={{
           background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           boxShadow: isOpen
@@ -266,7 +266,7 @@ export const EduAgent: React.FC = () => {
       {/* ====== PANEL DE CHAT ====== */}
       {isOpen && (
         <div
-          className="fixed bottom-24 right-6 z-50 w-96 max-w-[calc(100vw-3rem)] rounded-2xl overflow-hidden shadow-2xl flex flex-col"
+          className="fixed bottom-24 right-6 z-50 w-96 max-w-[calc(100vw-3rem)] rounded-2xl overflow-hidden shadow-2xl flex flex-col print:hidden"
           style={{
             height: '520px',
             background: 'linear-gradient(180deg, #0f172a 0%, #1e1b4b 100%)',
