@@ -50,18 +50,27 @@ const FALLBACK_CATALOG = [
   }
 ];
 
-const ELEMIA_BASE = process.env.ELEMIA_URL || 'https://elemia-v4-arkaios.onrender.com';
-const ELEMIA_TOKEN = process.env.ELEMIA_HTTP_TOKEN || 'ARKAIOS-SECURE-2025-ELEMIA-V4';
+const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || 'https://arkaios-n8n.onrender.com/webhook/arkaios-gateway';
+const N8N_API_KEY = process.env.N8N_API_KEY || 'ARKAIOS-N8N-SECURE-KEY-2026';
 
 async function elemiaRemember(content, tag = 'edu-agent') {
   try {
-    await fetch(`${ELEMIA_BASE}/elemia/remember`, {
+    // Enviar el log centralizado al webhook de n8n
+    await fetch(N8N_WEBHOOK_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-elemia-token': ELEMIA_TOKEN },
-      body: JSON.stringify({ content, tag })
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${N8N_API_KEY}` // Header Auth para n8n
+      },
+      body: JSON.stringify({ 
+        EVENT_TYPE: 'EDU_AGENT_REQUEST',
+        SOURCE_IP: 'gemini-lab',
+        NOTES: `[${tag}] ${content}`
+      })
     });
   } catch (e) {
-    // Continuar sin memoria persistente.
+    // Continuar sin fallar la peticion principal
+    console.error("Error enviando log a n8n:", e.message);
   }
 }
 
