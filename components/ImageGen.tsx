@@ -220,7 +220,13 @@ export const ImageGen: React.FC = () => {
             <img
               src={generatedImage}
               alt="Generated"
-              className="w-full h-full object-contain"
+              className="w-full h-full object-contain cursor-grab"
+              draggable={true}
+              onDragStart={(e) => {
+                e.dataTransfer.setData('text/plain', generatedImage);
+                e.dataTransfer.setData('text/uri-list', generatedImage);
+                e.dataTransfer.effectAllowed = 'copy';
+              }}
             />
           </div>
           <div className="mt-4 flex justify-end">

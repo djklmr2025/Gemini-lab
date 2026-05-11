@@ -97,8 +97,7 @@ async function fetchEducationalCatalog() {
 
 function buildCatalogPrompt(catalog) {
   return catalog.map((item) => {
-    const compatible = BRIDGE_COMPATIBLE_FILES.has(item.file) ? 'compatible' : 'solo_catalogo';
-    return `- id="${item.id}" | file="${item.file}" | name="${item.name}" | category="${item.category}" | mode="${compatible}" | desc="${item.description}"`;
+    return `- id="${item.id}" | file="${item.file}" | name="${item.name}" | category="${item.category}" | desc="${item.description}"`;
   }).join('\n');
 }
 
@@ -248,12 +247,10 @@ function resolveTemplate(intent, catalog) {
   const preferredFile = String(intent.preferred_template_file || '').trim().toLowerCase();
 
   const exact = catalog.find((item) => String(item.file).toLowerCase() === preferredFile);
-  const compatible = exact && (BRIDGE_COMPATIBLE_FILES.has(exact.file) || ORCHESTRATOR_COMPATIBLE_FILES.has(exact.file)) ? exact : null;
+  if (exact) return exact;
 
-  if (compatible) return compatible;
-
-  const firstCompatible = catalog.find((item) => BRIDGE_COMPATIBLE_FILES.has(item.file) || ORCHESTRATOR_COMPATIBLE_FILES.has(item.file));
-  return firstCompatible || FALLBACK_CATALOG[0];
+  const compatible = catalog.find((item) => BRIDGE_COMPATIBLE_FILES.has(item.file) || ORCHESTRATOR_COMPATIBLE_FILES.has(item.file));
+  return compatible || catalog[0] || FALLBACK_CATALOG[0];
 }
 
 function normalizeGrid(rawGrid, rawCount) {
