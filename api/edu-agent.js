@@ -236,22 +236,36 @@ REGLAS:
 - Usa source: "ai" SI el usuario pide explícitamente "generar", "crear con IA", "dibujar", "ilustrar". De lo contrario usa "pexels".
 - Responde SOLO JSON, sin markdown.\`;
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GOOGLE_API_KEY}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: `${systemPrompt}\n\nPeticion del usuario: "${userRequest}"` }] }],
-        generationConfig: { temperature: 0.3, maxOutputTokens: 500 }
-      })
-    }
-  );
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GOOGLE_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: `${systemPrompt}\n\nPeticion del usuario: "${userRequest}"` }] }],
+          generationConfig: { temperature: 0.3, maxOutputTokens: 500 },
+          safetySettings: [
+            { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+          ]
+        })
+      }
+    );
 
-  const data = await response.json();
-  const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-  const cleaned = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-  return JSON.parse(cleaned);
+    const data = await response.json();
+    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+    // Buscar un bloque JSON si hay texto adicional
+    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+    const cleaned = jsonMatch ? jsonMatch[0] : rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    
+    return JSON.parse(cleaned);
+  } catch (error) {
+    console.warn("Fallo el parseo de Gemini, usando fallback:", error.message);
+    return parseIntentFallback(userRequest);
+  }
 }
 
 function resolveTemplate(intent, catalog) {
