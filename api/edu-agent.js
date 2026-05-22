@@ -263,9 +263,15 @@ REGLAS:
     const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
     // Buscar un bloque JSON si hay texto adicional
     const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-    const cleaned = jsonMatch ? jsonMatch[0] : rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    const cleaned = jsonMatch ? jsonMatch[0] : rawText.replace(/\x60\x60\x60json\n?/g, '').replace(/\x60\x60\x60\n?/g, '').trim();
     
-    return JSON.parse(cleaned) || parseIntentFallback(userRequest);
+    const parsed = JSON.parse(cleaned);
+    if (!parsed || Object.keys(parsed).length === 0 || parsed.error) {
+      console.warn("Respuesta de Gemini vacia o con error, usando fallback.");
+      return parseIntentFallback(userRequest);
+    }
+
+    return parsed;
   } catch (error) {
     console.warn("Fallo el parseo de Gemini, usando fallback:", error.message);
     return parseIntentFallback(userRequest);
