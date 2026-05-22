@@ -238,7 +238,7 @@ REGLAS:
 - count debe coincidir con el grid cuando sea posible.
 - topic SIEMPRE en ingles para mejores resultados en Pexels/IA.
 - Usa source: "ai" SI el usuario pide explícitamente "generar", "crear con IA", "dibujar", "ilustrar". De lo contrario usa "pexels".
-- Responde SOLO JSON, sin markdown.\`;
+- Responde SOLO JSON, sin markdown.`;
 
   try {
     const response = await fetch(
@@ -435,6 +435,8 @@ async function fetchOrchestratedPrefill(request, topic) {
 }
 
 export default async function handler(req, res) {
+  console.log('[edu-agent] GOOGLE_API_KEY presente:', !!GOOGLE_API_KEY);
+  console.log('[edu-agent] ARKAIOS_EDU_BASE:', ARKAIOS_EDU_BASE);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -488,6 +490,7 @@ export default async function handler(req, res) {
     }
 
     const isOrchestrator = ORCHESTRATOR_COMPATIBLE_FILES.has(selectedTemplate.file);
+    if (isOrchestrator) {
       const orchestrated = await fetchOrchestratedPrefill(request, intent.topic);
       const payload = encodeURIComponent(Buffer.from(JSON.stringify(orchestrated.workspace), 'utf8').toString('base64'));
       const templateUrl = `${ARKAIOS_EDU_BASE}/${selectedTemplate.file}?agent=1&topic=${encodeURIComponent(intent.topic)}&payload=${payload}`;

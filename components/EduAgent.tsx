@@ -150,66 +150,7 @@ export const EduAgent: React.FC = () => {
         return;
       }
 
-      if (data.mode === 'client_ai_generate') {
-        const loadingMsg: EduMessage = {
-          role: 'agent',
-          text: `⚙️ Generando ${data.count} imágenes de "${data.topic}" con IA en vivo... (puede tardar un momento)`
-        };
-        setMessages(prev => [...prev.slice(0, -1), loadingMsg]);
 
-        const generatedUrls: string[] = [];
-        for (let i = 0; i < data.count; i++) {
-          const prompt = `${data.topic}, educational illustration, clear, beautiful, variation ${i + 1}`;
-          
-          let imgUrl = null;
-          // Intento 1: A1.art local proxy
-          try {
-            const res = await fetch('/api/a1art', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ prompt, model: 'default' })
-            });
-            if (res.ok) {
-               const a1Data = await res.json();
-               imgUrl = a1Data.image_url || a1Data.output_url || a1Data.image || a1Data[0];
-            }
-          } catch (e) { /* fallback */ }
-
-          // Intento 2: Puter AI
-          if (!imgUrl && window.puter?.ai?.txt2img) {
-            try {
-              const imgEl = await window.puter.ai.txt2img(prompt);
-              imgUrl = imgEl.src;
-            } catch (e) { /* fallback */ }
-          }
-
-          if (imgUrl) {
-            const dataUri = await urlToDataUri(imgUrl);
-            generatedUrls.push(dataUri);
-          }
-        }
-
-        if (generatedUrls.length === 0) {
-          throw new Error("No se pudo generar imágenes. Intenta pedir búsqueda normal.");
-        }
-
-        const imageUrlsStr = encodeURIComponent(generatedUrls.join('|'));
-        const finalTemplateUrl = `${data.baseUrl}/${data.templateFile}?agent=1&grid=${data.grid}&images=${imageUrlsStr}&topic=${encodeURIComponent(data.topic)}`;
-
-        const resultMsg: EduMessage = {
-          role: 'agent',
-          text: `✅ **Plantilla IA lista!** Generé ${generatedUrls.length} imágenes.\n\n🧩 Plantilla: ${data.templateLabel || data.templateFile}\n\n💡 ${data.reasoning}`,
-          templateUrl: finalTemplateUrl,
-          pdfUrl: data.pdfUrl + encodeURIComponent(finalTemplateUrl),
-          images: generatedUrls.map(u => ({ url: u, alt: 'AI', thumb: u })).slice(0, 4),
-          grid: data.grid,
-          topic: data.topic,
-          templateLabel: data.templateLabel
-        };
-        setMessages(prev => [...prev.slice(0, -1), resultMsg]);
-        setIsLoading(false);
-        return;
-      }
 
       // Reemplazar mensaje de "pensando" con resultado
       const resultMsg: EduMessage = {
