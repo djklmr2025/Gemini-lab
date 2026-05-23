@@ -452,10 +452,25 @@ export default async function handler(req, res) {
   try {
     const catalog = await fetchEducationalCatalog();
     const intent = await parseIntentWithGemini(request, catalog);
-    const normalized = normalizeGrid(intent.grid, intent.count);
-    let selectedTemplate = resolveTemplate(intent, catalog);
 
-    if (isDocumentRequest(request)) {
+    // Normalizar campos faltantes del intent
+    if (!intent.topic || intent.topic === 'undefined') {
+      const fallback = parseIntentFallback(request);
+      intent.topic = fallback.topic;
+    }
+    intent.grid = intent.grid || '3x3';
+    intent.count = Number(intent.count) || 9;
+
+    // Para peticiones de imágenes, excluir plantillas de orquestador de la selección
+    const isDoc = isDocumentRequest(request);
+    const templateCatalog = isDoc
+      ? catalog
+      : catalog.filter((item) => !ORCHESTRATOR_COMPATIBLE_FILES.has(item.file));
+
+    const normalized = normalizeGrid(intent.grid, intent.count);
+    let selectedTemplate = resolveTemplate(intent, templateCatalog.length > 0 ? templateCatalog : catalog);
+
+    if (isDoc) {
       const cartaTemplate = catalog.find((item) => ORCHESTRATOR_COMPATIBLE_FILES.has(item.file));
       if (cartaTemplate) selectedTemplate = cartaTemplate;
     }
