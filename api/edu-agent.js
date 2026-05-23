@@ -307,6 +307,9 @@ async function fetchImagesFromPexels(topic, count) {
   if (!response.ok) throw new Error(`Pexels error: ${response.status}`);
 
   const data = await response.json();
+  if (!Array.isArray(data.photos) || data.photos.length === 0) {
+    throw new Error(`Pexels no devolvió imágenes para: ${topic}`);
+  }
   return data.photos.map((photo) => ({
     url: photo.src.large,
     thumb: photo.src.medium,
@@ -540,7 +543,8 @@ export default async function handler(req, res) {
     console.error('[edu-agent] Error:', error);
     return res.status(500).json({
       error: 'Error procesando la peticion',
-      details: error.message
+      details: error.message,
+      stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined
     });
   }
 }
