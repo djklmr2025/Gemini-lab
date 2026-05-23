@@ -4,7 +4,7 @@
 // ============================================================
 
 const PEXELS_API_KEY = process.env.PEXELS_API_KEY || '4vj6qTzLM9oc0gN7bdgr3vCO7jRDIBe0zJgknfq9geibx9hdQ16TVxpz';
-const GOOGLE_API_KEY = process.env.VITE_GOOGLE_API_KEY || process.env.GOOGLE_API_KEY;
+const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || process.env.VITE_GOOGLE_API_KEY;
 
 const ARKAIOS_EDU_BASE = process.env.ARKAIOS_EDU_BASE || 'https://eduacion-libre-proyecto-arkaios.vercel.app';
 const ARKAIOS_EDU_TOOLS_URL = `${ARKAIOS_EDU_BASE}/api/arkaios-tools`;
@@ -56,22 +56,22 @@ const N8N_API_KEY = process.env.N8N_API_KEY || 'ARKAIOS-N8N-SECURE-KEY-2026';
 async function elemiaRemember(content, tag = 'edu-agent') {
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 1500); // 1.5s max
+    const timeoutId = setTimeout(() => controller.abort(), 1500);
 
     await fetch(N8N_WEBHOOK_URL, {
       method: 'POST',
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${N8N_API_KEY}` 
+        'Authorization': `Bearer ${N8N_API_KEY}`
       },
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         EVENT_TYPE: 'EDU_AGENT_REQUEST',
         SOURCE_IP: 'gemini-lab',
         NOTES: `[${tag}] ${content}`
       }),
       signal: controller.signal
     });
-    
+
     clearTimeout(timeoutId);
   } catch (e) {
     console.error("Webhook n8n timeout/error:", e.message);
@@ -176,19 +176,17 @@ function parseIntentFallback(userRequest = '') {
   const normalizedRequest = normalizeText(userRequest);
   const gridMatch = normalizedRequest.match(/(\d+)\s*x\s*(\d+)/);
   const explicitCountMatch = normalizedRequest.match(/\b(\d+)\b/);
-  
+
   let rows = gridMatch ? Number(gridMatch[1]) : 0;
   let cols = gridMatch ? Number(gridMatch[2]) : 0;
   let count = rows && cols ? rows * cols : (explicitCountMatch ? Number(explicitCountMatch[1]) : 9);
 
-  // Si no hay grid explícito (como "4x4"), pero hay un número de fotos (como "12 fotos"), calcular grid
   let grid = '3x3';
   if (gridMatch) {
     grid = `${rows}x${cols}`;
   } else if (count > 0) {
     const side = Math.ceil(Math.sqrt(count));
     const sideOther = Math.ceil(count / side);
-    // Preferir formato horizontal si no es cuadrado perfecto
     grid = side >= sideOther ? `${sideOther}x${side}` : `${side}x${sideOther}`;
   }
 
@@ -212,9 +210,9 @@ function parseIntentFallback(userRequest = '') {
   };
 }
 
-
 async function parseIntentWithGemini(userRequest, catalog) {
   if (!GOOGLE_API_KEY) {
+    console.warn('[edu-agent] GOOGLE_API_KEY no configurada, usando fallback');
     return parseIntentFallback(userRequest);
   }
 
@@ -225,7 +223,7 @@ async function parseIntentWithGemini(userRequest, catalog) {
   "topic": "tema en ingles para buscar imagenes",
   "count": numero_de_imagenes,
   "lang": "es",
-  "source": "ai", 
+  "source": "pexels",
   "reasoning": "explicacion breve"
 }
 
@@ -261,13 +259,12 @@ REGLAS:
 
     const data = await response.json();
     const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-    // Buscar un bloque JSON si hay texto adicional
     const jsonMatch = rawText.match(/\{[\s\S]*\}/);
     const cleaned = jsonMatch ? jsonMatch[0] : rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    
+
     return JSON.parse(cleaned) || parseIntentFallback(userRequest);
   } catch (error) {
-    console.warn("Fallo el parseo de Gemini, usando fallback:", error.message);
+    console.warn("[edu-agent] Fallo Gemini, usando fallback:", error.message);
     return parseIntentFallback(userRequest);
   }
 }
@@ -435,8 +432,6 @@ async function fetchOrchestratedPrefill(request, topic) {
 }
 
 export default async function handler(req, res) {
-  console.log('[edu-agent] GOOGLE_API_KEY presente:', !!GOOGLE_API_KEY);
-  console.log('[edu-agent] ARKAIOS_EDU_BASE:', ARKAIOS_EDU_BASE);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -446,6 +441,10 @@ export default async function handler(req, res) {
 
   const { request, mode } = req.body || {};
   if (!request) return res.status(400).json({ error: 'Campo "request" requerido' });
+
+  // Diagnóstico de variables de entorno
+  console.log('[edu-agent] GOOGLE_API_KEY presente:', !!GOOGLE_API_KEY);
+  console.log('[edu-agent] ARKAIOS_EDU_BASE:', ARKAIOS_EDU_BASE);
 
   try {
     const catalog = await fetchEducationalCatalog();
@@ -463,6 +462,7 @@ export default async function handler(req, res) {
       'edu-request'
     );
 
+    // Modo: redirigir al generador de imágenes IA externo
     if (mode === 'ai_generate') {
       const generatorUrl = `${ARKAIOS_EDU_BASE}/generador-ia-imagenes.html?prompt=${encodeURIComponent(intent.topic)}&resolution=768x768&count=${normalized.count}&autostart=1`;
       return res.status(200).json({
@@ -474,6 +474,7 @@ export default async function handler(req, res) {
       });
     }
 
+    // Modo: generar imágenes con IA en el cliente
     if (intent.source === 'ai') {
       return res.status(200).json({
         ok: true,
@@ -485,11 +486,13 @@ export default async function handler(req, res) {
         count: normalized.count,
         reasoning: `${intent.reasoning} | Generación de imágenes con IA en vivo`,
         baseUrl: ARKAIOS_EDU_BASE,
-        pdfUrl: `${ARKAIOS_EDU_PDF_URL}?url=` // We'll append URL later in client
+        pdfUrl: `${ARKAIOS_EDU_PDF_URL}?url=`
       });
     }
 
     const isOrchestrator = ORCHESTRATOR_COMPATIBLE_FILES.has(selectedTemplate.file);
+
+    // Modo: plantilla con orquestador (documentos escolares)
     if (isOrchestrator) {
       const orchestrated = await fetchOrchestratedPrefill(request, intent.topic);
       const payload = encodeURIComponent(Buffer.from(JSON.stringify(orchestrated.workspace), 'utf8').toString('base64'));
@@ -512,6 +515,7 @@ export default async function handler(req, res) {
       });
     }
 
+    // Modo: plantilla con imágenes de Pexels (flujo principal)
     const images = await fetchImagesFromPexels(intent.topic, normalized.count);
     const imageUrls = images.map((item) => item.url).join('|');
     const templateUrl = `${ARKAIOS_EDU_BASE}/${selectedTemplate.file}?agent=1&grid=${normalized.grid}&images=${encodeURIComponent(imageUrls)}&topic=${encodeURIComponent(intent.topic)}`;
@@ -531,8 +535,9 @@ export default async function handler(req, res) {
       images,
       catalogCount: catalog.length
     });
+
   } catch (error) {
-    console.error('EduAgent error:', error);
+    console.error('[edu-agent] Error:', error);
     return res.status(500).json({
       error: 'Error procesando la peticion',
       details: error.message
