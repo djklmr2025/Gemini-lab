@@ -493,7 +493,8 @@ export default async function handler(req, res) {
       });
     }
 
-    const isOrchestrator = ORCHESTRATOR_COMPATIBLE_FILES.has(selectedTemplate.file);
+    // Solo usar orquestador si el usuario pidió un documento Y la plantilla es compatible
+    const isOrchestrator = isDocumentRequest(request) && ORCHESTRATOR_COMPATIBLE_FILES.has(selectedTemplate.file);
 
     // Modo: plantilla con orquestador (documentos escolares)
     if (isOrchestrator) {
