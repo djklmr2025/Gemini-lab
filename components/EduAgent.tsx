@@ -87,7 +87,11 @@ export const EduAgent: React.FC = () => {
 
       const data = await response.json();
 
-      if (!data.ok) throw new Error(data.error || 'Error desconocido');
+      if (!data.ok || !response.ok) {
+        const msg = data.error || 'Error desconocido';
+        const detail = data.details ? ` | ${data.details}` : '';
+        throw new Error(msg + detail);
+      }
 
       if (data.mode === 'client_ai_generate') {
         const loadingMsg: EduMessage = {
