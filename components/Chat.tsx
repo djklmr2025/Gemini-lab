@@ -191,7 +191,7 @@ Tienes conexión directa (conocimiento) de los siguientes nodos activos. Úsalos
    
 2. **Lab del Proxy (Gateway Central)**:
    - URL: https://arkaios-gateway-open.onrender.com/
-   - API Key Maestra: \`sk_arkaios_proxy_8y28hsy72hs82js9\`
+   - API Key Maestra: (configurada vía variable de entorno PROXY_API_KEY, no expuesta aquí)
    - Misión: Enrutamiento de peticiones, backups y conexión inter-servicios.
 
 3. **Lab del Cosmo (Cosmos Den)**:
@@ -200,7 +200,7 @@ Tienes conexión directa (conocimiento) de los siguientes nodos activos. Úsalos
 
 4. **Arkaios Core API**:
    - URL: https://arkaios-core-api.onrender.com/
-   - Key Maestra: \`ARKAIOS_MASTER_KEY_777\`
+   - Key Maestra: (configurada vía variable de entorno ARKAIOS_MASTER_KEY, no expuesta aquí)
 
 ## 🛠️ CAPACIDADES OPERATIVAS
 - **Comunicación**: Puedes recibir peticiones para comunicarte con estos laboratorios. Si el usuario pide "Sube este archivo al Proxy", confirma la acción simulada usando las credenciales y URLs que conoces.
