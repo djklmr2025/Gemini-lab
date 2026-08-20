@@ -13,30 +13,45 @@ const ARKAIOS_EDU_PDF_URL = `${ARKAIOS_EDU_BASE}/api/export-pdf`;
 const BRIDGE_COMPATIBLE_FILES = new Set([
   'plantilla-imagenes-v2.html',
   'plantilla-cuadros-imagenes-v2.html',
+  'plantilla_circulos_jack.html',
   'generador-fotos-infantiles.html',
+  'generador-ia-imagenes.html',
+  'hoja_milimetrica_interactiva.html',
+  'material-educativo-reutilizable.html',
+  'buscador-imagenes-educativo.html',
+  'pixabay-descargador-lote.html',
+  'biografia_profesional.html',
   'brecha-digital.html',
-  'cultura-de-paz.html',
-  'buscador-imagenes-educativo.html'
+  'cultura-de-paz.html'
 ]);
 
 const ORCHESTRATOR_COMPATIBLE_FILES = new Set([
-  'plantilla_escolar_carta_mx_autoajuste_y_areas_editables.html'
+  'plantilla_escolar_carta_mx_autoajuste_y_areas_editables.html',
+  'biografia_profesional.html'
 ]);
 
 const FALLBACK_CATALOG = [
   {
     id: 'plantilla_imagenes_v2',
-    name: 'Plantilla Imagenes v2',
+    name: 'Plantilla Imágenes v2',
     file: 'plantilla-imagenes-v2.html',
-    description: 'Cuadricula flexible de imagenes compatible con carga automatica por URL.',
+    description: 'Cuadrícula flexible de imágenes compatible con carga automática por URL/Pexels/IA.',
     category: 'imagenes',
     listed: true
   },
   {
     id: 'plantilla_cuadros_imagenes_v2',
-    name: 'Cuadros Imagenes v2',
+    name: 'Cuadros Imágenes v2',
     file: 'plantilla-cuadros-imagenes-v2.html',
-    description: 'Cuadros de imagenes para impresion.',
+    description: 'Cuadros de imágenes para impresión y recortar.',
+    category: 'imagenes',
+    listed: true
+  },
+  {
+    id: 'plantilla_circulos_jack',
+    name: 'Círculos Jack Skellington',
+    file: 'plantilla_circulos_jack.html',
+    description: 'Formatos circulares para stickers, sellos, pines y parches escolares.',
     category: 'imagenes',
     listed: true
   },
@@ -44,8 +59,48 @@ const FALLBACK_CATALOG = [
     id: 'generador_fotos_infantiles',
     name: 'Generador Fotos Infantiles',
     file: 'generador-fotos-infantiles.html',
-    description: 'Fotos infantiles 2.5x3.',
+    description: 'Generación y formato de fotos tamaño infantil (2.5x3 cm) con recorte.',
     category: 'imagenes',
+    listed: true
+  },
+  {
+    id: 'generador_ia_imagenes',
+    name: 'Generador IA de Imágenes',
+    file: 'generador-ia-imagenes.html',
+    description: 'Estudio de generación de imágenes con inteligencia artificial en vivo.',
+    category: 'ia',
+    listed: true
+  },
+  {
+    id: 'hoja_milimetrica_interactiva',
+    name: 'Hoja Milimétrica Interactiva',
+    file: 'hoja_milimetrica_interactiva.html',
+    description: 'Canvas interactivo de hoja milimétrica para trazado técnico y matemáticas.',
+    category: 'herramientas',
+    listed: true
+  },
+  {
+    id: 'material_educativo_reutilizable',
+    name: 'Biblioteca de Material Reutilizable',
+    file: 'material-educativo-reutilizable.html',
+    description: 'Catálogo y gestión de PDFs y plantillas editables reutilizables.',
+    category: 'biblioteca',
+    listed: true
+  },
+  {
+    id: 'pixabay_descargador_lote',
+    name: 'Pixabay Descargador Lote',
+    file: 'pixabay-descargador-lote.html',
+    description: 'Descarga masiva de imágenes de Pixabay en formato ZIP por lote.',
+    category: 'herramientas',
+    listed: true
+  },
+  {
+    id: 'plantilla_escolar_carta_mx',
+    name: 'Plantilla Escolar Carta MX',
+    file: 'plantilla_escolar_carta_mx_autoajuste_y_areas_editables.html',
+    description: 'Documentos, informes y tareas escolares tamaño Carta MX con áreas editables.',
+    category: 'documentos',
     listed: true
   }
 ];
@@ -230,11 +285,17 @@ async function parseIntentWithGemini(userRequest, catalog) {
 CATALOGO VIVO DEL REPO EDUCATIVO:
 ${buildCatalogPrompt(catalog)}
 
-REGLAS:
-- Elige un archivo real del catalogo.
-- Si la tarea es una cuadricula de imagenes o no estas seguro, usa "plantilla-imagenes-v2.html".
+REGLAS DE SELECCIÓN DE PLANTILLA:
+- Para stickers, círculos, sellos, pines o parches -> "plantilla_circulos_jack.html".
+- Para fotos infantiles 2.5x3cm o credenciales -> "generador-fotos-infantiles.html".
+- Para hoja milimétrica, gráficos o dibujo técnico -> "hoja_milimetrica_interactiva.html".
+- Para informes, tareas, ensayos o documentos -> "plantilla_escolar_carta_mx_autoajuste_y_areas_editables.html".
+- Para descarga masiva ZIP o Pixabay en lote -> "pixabay-descargador-lote.html".
+- Para estudio de IA o generación directa -> "generador-ia-imagenes.html".
+- Para biblioteca de archivos/materiales reutilizables -> "material-educativo-reutilizable.html".
+- Para cuadrículas de imágenes o consulta general -> "plantilla-imagenes-v2.html" o "plantilla-cuadros-imagenes-v2.html".
 - count debe coincidir con el grid cuando sea posible.
-- topic SIEMPRE en ingles para mejores resultados en Pexels/IA.
+- topic SIEMPRE en inglés para mejores resultados en Pexels/IA.
 - Usa source: "ai" SI el usuario pide explícitamente "generar", "crear con IA", "dibujar", "ilustrar". De lo contrario usa "pexels".
 - Responde SOLO JSON, sin markdown.`;
 
