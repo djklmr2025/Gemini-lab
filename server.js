@@ -24,6 +24,16 @@ app.all('/api/edu-agent', async (req, res, next) => {
   }
 });
 
+app.options('/api/chat', (req, res) => res.status(200).end());
+app.all('/api/chat', async (req, res, next) => {
+  try {
+    const handler = require('./api/chat.js');
+    return handler(req, res);
+  } catch (error) {
+    return next(error);
+  }
+});
+
 app.get('*', (req, res) => {
   res.sendFile(indexFile);
 });
