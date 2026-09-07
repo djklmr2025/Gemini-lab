@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Eraser, Radio, Mic, Settings, Image as ImageIcon } from 'lucide-react';
 import { Message } from '../types';
 import ImageGenModal from './ImageGenModal';
+import { generatePerchanceImage } from '../utils/perchanceGenerator';
 
 // Configuration
 const CHARACTER_IMAGE_URL = "/arkaios_avatar.png";
@@ -173,6 +174,48 @@ export const Chat: React.FC = () => {
     setInputValue('');
     setAttachment(null);
     setIsLoading(true);
+
+    // Detección automática de solicitud de imagen para el agente ARKAIOS con Perchance.org
+    const imageMatch = text.trim().match(/^(?:\/image\s+|genera(?:r)?\s+(?:una?\s+)?(?:imagen|foto|dibujo)|crea(?:r)?\s+(?:una?\s+)?(?:imagen|foto|dibujo)|dibuja(?:r)?\s+)(.+)/i);
+    if (imageMatch) {
+      const promptToGen = imageMatch[1].trim().replace(/^de\s+|^sobre\s+/i, '');
+      const statusMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'model',
+        text: `⚡ Protocolo visual ARKAIOS activado. Generando imagen con motor Perchance.org (Sin Filtros): "${promptToGen}"...`,
+        timestamp: Date.now()
+      };
+      setMessages(prev => [...prev, statusMsg]);
+      speakText("Iniciando generación de imagen con motor Perchance.");
+
+      try {
+        const dataUrl = await generatePerchanceImage(promptToGen, {
+          resolution: '768x768',
+          negativePrompt: 'borroso, baja calidad, deformado, marca de agua'
+        });
+        const finalMsg: Message = {
+          id: (Date.now() + 2).toString(),
+          role: 'model',
+          text: `🎨 Imagen generada con éxito por ARKAIOS (Motor Perchance.org): "${promptToGen}"`,
+          image: dataUrl,
+          timestamp: Date.now()
+        };
+        setMessages(prev => [...prev.filter(m => m.id !== statusMsg.id), finalMsg]);
+        speakText("Visualización completada.");
+      } catch (err: any) {
+        console.error("Error Perchance:", err);
+        const errMsg: Message = {
+          id: (Date.now() + 2).toString(),
+          role: 'model',
+          text: `Error en protocolo visual: ${err.message}`,
+          timestamp: Date.now()
+        };
+        setMessages(prev => [...prev.filter(m => m.id !== statusMsg.id), errMsg]);
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
 
     try {
       let responseText = '';

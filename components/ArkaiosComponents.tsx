@@ -53,13 +53,20 @@ export const ArkaiosSidebarActions = () => {
 
 
 
-            {/* BOTÓN 4: IMPLEMENTA Y GANA */}
+            {/* BOTÓN 4: EDUCACIÓN LIBRE ARKAIOS — DONACIÓN $100 AMR */}
             <button
                 onClick={() => handleNav('https://eduacion-libre-proyecto-arkaios.vercel.app/')}
                 style={neonButtonStyle('#f59e0b')} // Oro / Amber
             >
-                <span style={{ marginRight: '8px' }}>🚀</span>
-                IMPLEMENTA Y GANA
+                <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <span style={{ marginRight: '8px' }}>🎓</span>
+                        <span style={{ fontSize: '0.82rem', fontWeight: 'bold' }}>EDUCACIÓN LIBRE ARKAIOS</span>
+                    </div>
+                    <span style={{ fontSize: '0.68rem', color: '#fef08a', fontWeight: '500', marginTop: '2px', opacity: 0.9 }}>
+                        Donación vitalicia $100 AMR • Licencia no comercial
+                    </span>
+                </div>
             </button>
 
             {/* BOTÓN 5: YOUTUBE EXTRACTOR */}

@@ -1,8 +1,6 @@
 import React from 'react';
 import { AppMode } from '../types';
 
-import { ArkaiosSidebarActions } from './ArkaiosComponents';
-
 interface NavigationProps {
   currentMode: AppMode;
   onModeChange: (mode: AppMode) => void;
@@ -36,9 +34,6 @@ export const Navigation: React.FC<NavigationProps> = ({ currentMode, onModeChang
             <span className="font-medium">{item.label}</span>
           </button>
         ))}
-
-        {/* INTEGRACIÓN ARKAIOS (REZE KIT V2) */}
-        <ArkaiosSidebarActions />
       </div>
 
       <div className="mt-auto px-4 py-4 bg-slate-800/50 rounded-lg border border-slate-700/50">
