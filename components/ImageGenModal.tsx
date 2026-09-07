@@ -11,6 +11,7 @@ const ImageGenModal: React.FC<ImageGenModalProps> = ({ onClose, onImageGenerated
     const [prompt, setPrompt] = useState('');
     const [engine, setEngine] = useState<'perchance' | 'puter'>('perchance');
     const [resolution, setResolution] = useState<'768x768' | '512x768' | '768x512'>('768x768');
+    const [artStyle, setArtStyle] = useState<string>('Painted Anime');
     const [isGenerating, setIsGenerating] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -24,7 +25,8 @@ const ImageGenModal: React.FC<ImageGenModalProps> = ({ onClose, onImageGenerated
             if (engine === 'perchance') {
                 const dataUrl = await generatePerchanceImage(prompt, {
                     resolution,
-                    negativePrompt: 'borroso, baja calidad, deformado, marca de agua'
+                    artStyle,
+                    negativePrompt: 'blurry, low quality, distorted, bad anatomy, deformed, mutated, censored, mosaic, bar, watermark, text'
                 });
                 onImageGenerated(dataUrl, prompt);
                 onClose();
@@ -118,6 +120,27 @@ const ImageGenModal: React.FC<ImageGenModalProps> = ({ onClose, onImageGenerated
                             <option value="768x512">Horizontal (768×512)</option>
                         </select>
                     </div>
+
+                    {/* Selector de Estilo Perchance */}
+                    {engine === 'perchance' && (
+                        <div className="flex items-center justify-between bg-slate-800/50 p-2.5 rounded-xl border border-slate-700/60">
+                            <span className="text-xs text-slate-400 font-medium">Estilo Perchance:</span>
+                            <select
+                                value={artStyle}
+                                onChange={(e) => setArtStyle(e.target.value)}
+                                className="bg-slate-900 text-white text-xs px-2.5 py-1.5 rounded-lg border border-slate-700 focus:border-blue-500 focus:outline-none"
+                            >
+                                <option value="Painted Anime">🎨 Painted Anime (Pixiv / Kantoku / WLOP)</option>
+                                <option value="Manga">📖 Manga B&W (Inoue / Otomo / Akamatsu)</option>
+                                <option value="Casual Photo">📷 Casual Photo (DSLR Hiperrealista)</option>
+                                <option value="Cinematic">🎬 Cinematic (Panavision / 8K HDR)</option>
+                                <option value="Digital Painting">🖌️ Digital Painting (Artstation)</option>
+                                <option value="Concept Art">⚔️ Concept Art</option>
+                                <option value="Forensic / Medical">🔬 Forense / Médico (Sin Censura)</option>
+                                <option value="none">Libre (Solo Prompt)</option>
+                            </select>
+                        </div>
+                    )}
 
                     {engine === 'perchance' && (
                         <div className="flex items-center gap-1.5 text-[11px] text-emerald-400 bg-emerald-950/40 border border-emerald-800/40 p-2 rounded-lg">
