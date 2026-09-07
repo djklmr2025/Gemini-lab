@@ -10,13 +10,49 @@ export interface PerchanceGenOptions {
   guidanceScale?: number;
 }
 
+/**
+ * Optimiza y traduce prompts en español (incluyendo modismos explícitos y técnicos)
+ * hacia etiquetas en inglés que los modelos FLUX y Stable Diffusion entienden con precisión.
+ */
+function enhancePromptForDiffusion(rawPrompt: string): string {
+  let p = rawPrompt.trim();
+
+  // Traducción y mapeo de modismos en español a etiquetas Danbooru / SD
+  p = p.replace(/como dios la trajo al mundo/gi, 'nude, completely naked, uncensored');
+  p = p.replace(/sin ropa/gi, 'nude, naked, uncensored');
+  p = p.replace(/desnuda(s)?/gi, 'nude, naked, uncensored');
+  p = p.replace(/desnudo(s)?/gi, 'nude, naked, uncensored');
+  p = p.replace(/mostrando sus atributos/gi, 'detailed voluptuous body, uncensored, erotic');
+  p = p.replace(/en pocicion sexual|en posicion sexual/gi, 'provocative pose, sensual, intimate');
+  p = p.replace(/chica anime/gi, '1girl, anime style, highly detailed anime girl');
+  p = p.replace(/mujer/gi, '1woman');
+  p = p.replace(/escena forense/gi, 'crime scene forensic investigation, evidence markers, ruler');
+  p = p.replace(/patologia forense/gi, 'forensic pathology medical laboratory, tissue examination');
+  p = p.replace(/diseccion/gi, 'medical dissection, anatomical study, clinical accuracy');
+  p = p.replace(/herida/gi, 'medical wound, clinical trauma photography');
+
+  // Si detecta anime, agregar potenciadores de calidad anime
+  if (/anime/i.test(rawPrompt)) {
+    p += ', masterpiece, top quality, detailed anime art, highres, vibrant colors';
+  } else {
+    p += ', high resolution, 8k, photorealistic, sharp focus';
+  }
+
+  return p;
+}
+
 export async function generatePerchanceImage(
   prompt: string,
   options: PerchanceGenOptions = {}
 ): Promise<string> {
   const resolution = options.resolution || '768x768';
-  const negativePrompt = options.negativePrompt || 'blurry, low quality, distorted, watermark';
-  const fullPrompt = options.artStyle ? `${prompt}, ${options.artStyle}` : prompt;
+  const negativePrompt = options.negativePrompt || 'blurry, low quality, distorted, bad anatomy, deformed';
+  
+  // Optimizar el prompt para máxima fidelidad
+  const enhancedPrompt = enhancePromptForDiffusion(prompt);
+  const fullPrompt = options.artStyle && options.artStyle !== 'none' 
+    ? `${enhancedPrompt}, ${options.artStyle}` 
+    : enhancedPrompt;
 
   return new Promise((resolve, reject) => {
     const serverOrigin = 'https://image-generation.perchance.org';
