@@ -1,5 +1,12 @@
-const express = require('express');
+const fs = require('fs');
 const path = require('path');
+if (fs.existsSync(path.join(__dirname, '.env'))) {
+  fs.readFileSync(path.join(__dirname, '.env'), 'utf-8').split('\n').forEach(line => {
+    const [k, ...v] = line.trim().split('=');
+    if (k && !k.startsWith('#')) process.env[k.trim()] = v.join('=').trim();
+  });
+}
+const express = require('express');
 const { pathToFileURL } = require('url');
 
 const app = express();
@@ -34,7 +41,7 @@ app.all('/api/chat', async (req, res, next) => {
   }
 });
 
-app.get('*', (req, res) => {
+app.use((req, res) => {
   res.sendFile(indexFile);
 });
 
