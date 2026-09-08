@@ -95,31 +95,43 @@ export async function generatePerchanceImage(
 
     const iframe = document.createElement('iframe');
     iframe.id = privateIframeId;
-    iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;border:none;';
+    iframe.className = privateIframeId;
+    // Dimensiones reales mínimas para activar IntersectionObserver en el clúster de Perchance
+    iframe.style.cssText = 'position:fixed;bottom:0;right:0;width:320px;height:320px;opacity:0.01;pointer-events:none;z-index:-999;border:none;';
     iframe.src = `${serverOrigin}/embed#${encodeURIComponent(JSON.stringify(urlHashData))}`;
 
     let resolved = false;
 
-    // Timeout de seguridad: si Perchance tarda más de 30s o la red lo ralentiza, usar fallback abierto de alta velocidad
+    // Timeout generoso: el clúster de Perchance toma entre 8 y 25 segundos para generar en 768x768
     const timeout = setTimeout(() => {
       if (resolved) return;
       cleanup();
-      console.warn('[ARKAIOS Perchance] Timeout en endpoint primario, ejecutando fallback de alta velocidad...');
-      fallbackPollinations(fullPrompt, negativePrompt, resolution)
-        .then(resolve)
-        .catch(reject);
-    }, 30000);
+      reject(new Error('El clúster de Perchance.org tardó más de lo esperado en responder. Por favor intenta de nuevo.'));
+    }, 45000);
 
     function messageHandler(event: MessageEvent) {
-      if (event.data && event.data.type === 'finished' && event.data.id === privateIframeId) {
+      if (!event.data || typeof event.data !== 'object') return;
+
+      // 1. HANDSHAKE OBLIGATORIO DE PERCHANCE: Cuando el embed solicita originNotify
+      if (event.data.type === 'readyForData' && event.data.id === privateIframeId) {
+        try {
+          if (iframe && iframe.contentWindow) {
+            iframe.contentWindow.postMessage({ type: 'originNotify', frameId: privateIframeId }, serverOrigin);
+          }
+        } catch (e) {
+          console.warn('[ARKAIOS Perchance] Error enviando handshake originNotify:', e);
+        }
+        return;
+      }
+
+      // 2. IMAGEN FINAL PRODUCIDA POR EL MOTOR DE PERCHANCE
+      if (event.data.type === 'finished' && event.data.id === privateIframeId) {
         resolved = true;
         cleanup();
         if (event.data.dataUrl) {
           resolve(event.data.dataUrl);
         } else {
-          fallbackPollinations(fullPrompt, negativePrompt, resolution)
-            .then(resolve)
-            .catch(reject);
+          reject(new Error('El motor de Perchance no devolvió datos válidos de imagen.'));
         }
       }
     }
@@ -134,26 +146,5 @@ export async function generatePerchanceImage(
 
     window.addEventListener('message', messageHandler);
     document.body.appendChild(iframe);
-  });
-}
-
-/**
- * Fallback de respaldo FLUX abierto sin censura para continuidad operativa
- */
-async function fallbackPollinations(prompt: string, neg: string, resolution: string): Promise<string> {
-  const [w, h] = resolution.split('x').map(Number);
-  const seed = Math.floor(Math.random() * 2147483647);
-  const cleanNeg = neg ? `. Avoid: ${neg}` : '';
-  const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt + cleanNeg)}?width=${w || 768}&height=${h || 768}&seed=${seed}&nologo=true`;
-
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Error en servidor generativo: ${res.status}`);
-  const blob = await res.blob();
-
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
   });
 }
